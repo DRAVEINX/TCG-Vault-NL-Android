@@ -8,6 +8,7 @@ Een Nederlandstalige **native Android-app** voor Pokémon, Magic: The Gathering,
 - **Back-up herstellen:** selecteer een eerdere `TCG-Vault-NL-backup.json`, bevestig expliciet dat de huidige collectie vervangen wordt en herstel kaarten, aantallen, eigen prijzen, talen, uitvoeringen, afbeelding-URL's en opgeslagen scanmomenten.
 - **Gegevensbeveiliging:** eerst wordt het complete bestand gecontroleerd, daarna worden wijzigingen binnen één SQLite-transactie uitgevoerd. Bij een onjuist/ongeldig bestand blijven de huidige kaarten behouden. Back-upbestanden mogen maximaal 16 MB groot zijn.
 - **Collectie sorteren:** recent toegevoegd, naam A–Z, meeste exemplaren, meeste dubbelen en hoogste **eigen opgegeven waarde**. De app toont het aantal gefilterde kaarten.
+- **Recente scans in portfolio:** een chronologisch overzicht van de twaalf laatst opgeslagen scanmomenten, met kaartnaam, kaartspel en tijdstip. Deze scanmomenten zitten ook in de JSON-back-up.
 
 ### Zo maak je veilig een back-up
 
@@ -51,7 +52,7 @@ De back-up bevat persoonsgegevens die je zelf in notities of OCR-scans hebt opge
 ## Wat al werkt
 
 - Lokale collectie met filteren, zoeken, talen, varianten en dubbelen.
-- Scanhistorie per opgeslagen kaartvariant (aantal scans), aantallen verhogen/verlagen.
+- Scanhistorie per opgeslagen kaartvariant (aantal scans), zichtbare recente scanmomenten en aantallen verhogen/verlagen.
 - Eigen optionele prijzen per kaart en totaal van **zelf ingevoerde** waarden.
 - Portfolio als tekst delen via andere apps. Nog geen publiek online portfolio of accounts.
 - Volledig Nederlandstalige interface en handmatige kaartinvoer.
