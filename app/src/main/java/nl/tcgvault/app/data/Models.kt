@@ -37,6 +37,14 @@ data class Verzamelkaart(
     val catalogusId: String = "",
 )
 
+/** Zichtbaar overzicht van eerder bevestigde scanmomenten. */
+data class ScanMoment(
+    val kaartId: Long,
+    val kaartNaam: String,
+    val spel: Kaartspel,
+    val gescandOp: Long
+)
+
 fun Verzamelkaart.variantSleutel() = listOf(
     spel.name, naam, setNaam, kaartnummer, taal, uitvoering, conditie
 ).joinToString("|") { it.trim().lowercase(Locale.ROOT) }
