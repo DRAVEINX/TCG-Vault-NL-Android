@@ -1223,6 +1223,111 @@ private fun MatchDialoog(
     }
 }
 
+@Composable
+private fun ScanhistorieDialoog(scans: List<ScanMoment>, sluiten: () -> Unit) {
+    var zoekterm by remember { mutableStateOf("") }
+    var spelFilter by remember { mutableStateOf("Alle spellen") }
+    val getoond = scans.filter { scan ->
+        (spelFilter == "Alle spellen" || scan.spel.titel == spelFilter) &&
+            (zoekterm.isBlank() ||
+                scan.kaartNaam.contains(zoekterm.trim(), ignoreCase = true) ||
+                scan.herkendeTekst.contains(zoekterm.trim(), ignoreCase = true))
+    }
+    Dialog(onDismissRequest = sluiten) {
+        Surface(
+            color = Paneel,
+            shape = RoundedCornerShape(24.dp),
+            border = BorderStroke(1.dp, Lijn),
+            modifier = Modifier.fillMaxWidth().fillMaxHeight(.90f)
+        ) {
+            Column(Modifier.fillMaxSize().padding(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.History, null, tint = Accent)
+                    Spacer(Modifier.width(10.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("Scanhistorie", color = Licht, fontSize = 22.sp, fontWeight = FontWeight.Black)
+                        Text("Laatste " + scans.size + " scans (maximaal 500)", color = Muted, fontSize = 11.sp)
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = zoekterm, onValueChange = { zoekterm = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = { Text("Zoek kaart of herkende tekst") },
+                    leadingIcon = { Icon(Icons.Default.Search, null) },
+                    shape = RoundedCornerShape(12.dp), singleLine = true
+                )
+                Spacer(Modifier.height(8.dp))
+                Keuzelijst(
+                    "Kaartspel", spelFilter,
+                    listOf("Alle spellen") + Kaartspel.entries.map { it.titel }
+                ) { spelFilter = it }
+                Spacer(Modifier.height(10.dp))
+                Text(getoond.size.toString() + " scanmomenten gevonden", color = Muted, fontSize = 11.sp)
+                Spacer(Modifier.height(8.dp))
+                LazyColumn(
+                    Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(9.dp)
+                ) {
+                    items(getoond) { scan ->
+                        Surface(
+                            color = PaneelLicht,
+                            shape = RoundedCornerShape(14.dp),
+                            border = BorderStroke(1.dp, Lijn)
+                        ) {
+                            Column(Modifier.fillMaxWidth().padding(12.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(
+                                        Modifier.size(31.dp).background(
+                                            spelKleur(scan.spel).copy(alpha = .15f),
+                                            RoundedCornerShape(9.dp)
+                                        ),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            Icons.Default.CheckCircle, null, tint = spelKleur(scan.spel),
+                                            modifier = Modifier.size(17.dp)
+                                        )
+                                    }
+                                    Spacer(Modifier.width(9.dp))
+                                    Column(Modifier.weight(1f)) {
+                                        Text(scan.kaartNaam, color = Licht, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                        Text(scan.spel.titel, color = Muted, fontSize = 10.sp)
+                                    }
+                                    Text(
+                                        SimpleDateFormat("dd-MM-yyyy HH:mm", Locale("nl", "NL"))
+                                            .format(Date(scan.gescandOp)),
+                                        color = Muted, fontSize = 10.sp
+                                    )
+                                }
+                                if (scan.herkendeTekst.isNotBlank()) {
+                                    Spacer(Modifier.height(8.dp))
+                                    Text(
+                                        scan.herkendeTekst.replace("\n", " • ").take(240),
+                                        color = Muted, fontSize = 11.sp,
+                                        lineHeight = 16.sp, maxLines = 4,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    "Je volledige scanlog zit ook in je JSON-back-up. Hier tonen we maximaal 500 recente scans.",
+                    color = Muted, fontSize = 10.sp
+                )
+                Spacer(Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = sluiten, modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                ) { Text("Sluiten") }
+            }
+        }
+    }
+}
+
 private fun spelKleur(spel: Kaartspel): Color = when (spel) {
     Kaartspel.POKEMON -> Color(0xFFFFCB67)
     Kaartspel.MAGIC -> Color(0xFFAF94FF)
