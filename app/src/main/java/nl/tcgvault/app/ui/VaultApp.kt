@@ -248,7 +248,7 @@ fun VaultApp(vm: KaartViewModel = viewModel()) {
                     zoekInCatalogus = ::zoekOpNaam,
                     kiesFoto = { galerij.launch("image/*") }, handmatig = { ocrTekst = null; gekozenMatch = null; dialoog = true }
                 )
-                Pagina.COLLECTIE -> CollectiePagina(kaarten, vm::wijzigAantal, vm::werkKaartBij)
+                Pagina.COLLECTIE -> CollectiePagina(kaarten, vm::wijzigAantal, vm::werkKaartBij, vm::verwijderKaart)
                 Pagina.PORTFOLIO -> PortfolioPagina(
                     kaarten = kaarten,
                     recenteScans = recenteScans,
@@ -606,8 +606,10 @@ private fun ScannerPagina(
 @Composable
 private fun CollectiePagina(
     kaarten: List<Verzamelkaart>, wijzigAantal: (Long, Int) -> Unit,
-    bewerkKaart: (Verzamelkaart) -> Unit
+    bewerkKaart: (Verzamelkaart) -> Unit,
+    verwijderKaart: (Long) -> Unit
 ) {
+    var kaartVoorVerwijderen by remember { mutableStateOf<Verzamelkaart?>(null) }
     var detailKaart by remember { mutableStateOf<Verzamelkaart?>(null) }
     var kaartInBewerking by remember { mutableStateOf<Verzamelkaart?>(null) }
     var zoekterm by rememberSaveable { mutableStateOf("") }
@@ -681,7 +683,8 @@ private fun CollectiePagina(
         detailKaart?.let { kaart ->
             KaartDetailDialoog(
                 kaart, sluiten = { detailKaart = null },
-                bewerken = { detailKaart = null; kaartInBewerking = kaart }
+                bewerken = { detailKaart = null; kaartInBewerking = kaart },
+                verwijderen = { detailKaart = null; kaartVoorVerwijderen = kaart }
             )
         }
         kaartInBewerking?.let { kaart ->
@@ -692,6 +695,30 @@ private fun CollectiePagina(
                 opslaan = { aangepast ->
                     bewerkKaart(aangepast)
                     kaartInBewerking = null
+                }
+            )
+        }
+        kaartVoorVerwijderen?.let { kaart ->
+            AlertDialog(
+                onDismissRequest = { kaartVoorVerwijderen = null },
+                containerColor = Paneel,
+                title = { Text("Kaart echt verwijderen?", color = Licht) },
+                text = {
+                    Text(
+                        "Je verwijdert " + kaart.aantal + " exemplaar/exemplaren van " +
+                            kaart.naam + " én de gekoppelde scanmomenten. " +
+                            "Dit kan niet ongedaan worden gemaakt. Maak zo nodig eerst een back-up.",
+                        color = Muted
+                    )
+                },
+                confirmButton = {
+                    Button(onClick = {
+                        kaartVoorVerwijderen = null
+                        verwijderKaart(kaart.id)
+                    }) { Text("Definitief verwijderen") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { kaartVoorVerwijderen = null }) { Text("Annuleren") }
                 }
             )
         }
@@ -732,7 +759,11 @@ private fun KaartRij(kaart: Verzamelkaart, wijzigAantal: (Long, Int) -> Unit, be
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Surface(color = PaneelLicht, shape = RoundedCornerShape(10.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            IconButton(onClick = { wijzigAantal(kaart.id, kaart.aantal - 1) }, modifier = Modifier.size(31.dp)) {
+                            IconButton(
+                                onClick = { wijzigAantal(kaart.id, kaart.aantal - 1) },
+                                enabled = kaart.aantal > 1,
+                                modifier = Modifier.size(31.dp)
+                            ) {
                                 Icon(Icons.Default.Remove, "Eén kaart minder", tint = Muted, modifier = Modifier.size(17.dp))
                             }
                             Text(kaart.aantal.toString(), color = Licht, fontWeight = FontWeight.Bold, fontSize = 12.sp)
@@ -1373,7 +1404,9 @@ private fun KaartIllustratie(url: String, spel: Kaartspel, modifier: Modifier = 
 }
 
 @Composable
-private fun KaartDetailDialoog(kaart: Verzamelkaart, sluiten: () -> Unit, bewerken: () -> Unit) {
+private fun KaartDetailDialoog(
+    kaart: Verzamelkaart, sluiten: () -> Unit, bewerken: () -> Unit, verwijderen: () -> Unit
+) {
     Dialog(onDismissRequest = sluiten) {
         Surface(
             color = Paneel, shape = RoundedCornerShape(24.dp),
@@ -1413,21 +1446,26 @@ private fun KaartDetailDialoog(kaart: Verzamelkaart, sluiten: () -> Unit, bewerk
                     Text("Afbeelding en gegevens zijn een catalogusvoorstel. Geen geverifieerde Cardmarket-prijs.",
                         color = Muted, fontSize = 10.sp, textAlign = TextAlign.Center)
                 }
-                Row(
-                    Modifier.fillMaxWidth().padding(14.dp),
-                    horizontalArrangement = Arrangement.spacedBy(9.dp)
-                ) {
-                    OutlinedButton(
-                        onClick = sluiten, shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.weight(1f)
-                    ) { Text("Sluiten") }
-                    Button(
-                        onClick = bewerken, shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.weight(1.3f)
+                Column(Modifier.padding(14.dp)) {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(9.dp)
                     ) {
-                        Icon(Icons.Default.Edit, null, modifier = Modifier.size(17.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text("Bewerken")
+                        OutlinedButton(
+                            onClick = sluiten, shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.weight(1f)
+                        ) { Text("Sluiten") }
+                        Button(
+                            onClick = bewerken, shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.weight(1.3f)
+                        ) {
+                            Icon(Icons.Default.Edit, null, modifier = Modifier.size(17.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("Bewerken")
+                        }
+                    }
+                    TextButton(onClick = verwijderen, modifier = Modifier.fillMaxWidth()) {
+                        Text("Kaart volledig verwijderen", color = Goud, fontSize = 12.sp)
                     }
                 }
             }
