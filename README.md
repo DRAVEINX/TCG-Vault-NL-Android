@@ -6,6 +6,7 @@ Een Nederlandstalige **native Android-app** voor Pokémon, Magic: The Gathering,
 
 - **Echte kaartafbeeldingen:** de app kan beschikbare afbeeldingen uit TCGdex (Pokémon), Scryfall (Magic) en de One Piece-catalogus tonen in het matchvenster, bevestigingsformulier en de collectie. Als een foto ontbreekt, verschijnt een nette kaartplaceholder. Yu-Gi-Oh! en Riftbound gebruiken voorlopig placeholders vanwege afbeeldingsrichtlijnen en rechten.
 - **Foto-voorvertoning:** zie je gekozen foto in de scanstudio.
+- **Kaartdetailvenster:** tik op een afbeelding of kaartnaam in je collectie om een groter kaartbeeld, spel, nummer, taal, uitvoering, conditie, aantal, eigen prijs en catalogusbron te bekijken.
 - **Zelf in catalogus zoeken:** typ de kaartnaam als OCR faalt, zoek de mogelijke kaart en bevestig set, nummer en uitvoering.
 - **Betere drukvergelijking:** de scanner sorteert op overeenkomend kaartnummer en naam. Voor Magic laat hij meerdere fysieke drukken zien via Scryfall; het is geen garantie dat alle drukken gevonden worden.
 - **Database-upgrade zonder wissen:** de app bewaart bron, catalogus-ID en beschikbare afbeeldingslink bij nieuw toegevoegde kaarten. Bestaande kaarten blijven behouden.
