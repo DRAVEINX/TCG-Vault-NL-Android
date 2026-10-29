@@ -93,16 +93,17 @@ class KaartDatabase(context: Context) : SQLiteOpenHelper(context, "tcg_vault.db"
         }
     }
 
+    /** Laat de nieuwste scanmomenten zien, maximaal 500 om de UI responsief te houden. */
     fun recenteScans(limiet: Int = 10): List<ScanMoment> {
         val lijst = mutableListOf<ScanMoment>()
         readableDatabase.rawQuery(
             """
-                SELECT s.kaart_id, k.naam, k.spel, s.gescand_op
+                SELECT s.kaart_id, k.naam, k.spel, s.gescand_op, s.herkende_tekst
                 FROM scans s JOIN kaarten k ON k.id = s.kaart_id
                 ORDER BY s.gescand_op DESC, s.id DESC
                 LIMIT ?
             """.trimIndent(),
-            arrayOf(limiet.coerceIn(1, 100).toString())
+            arrayOf(limiet.coerceIn(1, 500).toString())
         ).use { cursor ->
             while (cursor.moveToNext()) {
                 lijst.add(
@@ -110,7 +111,8 @@ class KaartDatabase(context: Context) : SQLiteOpenHelper(context, "tcg_vault.db"
                         kaartId = cursor.getLong(0),
                         kaartNaam = cursor.getString(1),
                         spel = Kaartspel.vanSleutel(cursor.getString(2)),
-                        gescandOp = cursor.getLong(3)
+                        gescandOp = cursor.getLong(3),
+                        herkendeTekst = cursor.getString(4)
                     )
                 )
             }
@@ -166,6 +168,46 @@ class KaartDatabase(context: Context) : SQLiteOpenHelper(context, "tcg_vault.db"
                 db.insertOrThrow("scans", null, values)
             }
             db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
+    }
+
+    /**
+     * Corrigeer een opgeslagen kaart. Als de gecorrigeerde variant al bestaat,
+     * worden aantallen EN scanmomenten in één transactie samengevoegd.
+     */
+    fun bewerkKaart(bewerkt: Verzamelkaart): Boolean {
+        require(bewerkt.id > 0) { "Geen geldig kaart-ID." }
+        require(bewerkt.naam.isNotBlank() && bewerkt.taal.isNotBlank()) { "Naam en taal zijn verplicht." }
+        require(bewerkt.aantal in 1..100_000) { "Het aantal moet tussen 1 en 100.000 liggen." }
+        val db = writableDatabase
+        db.beginTransaction()
+        try {
+            val lijst = alleKaarten()
+            val oorspronkelijk = lijst.firstOrNull { it.id == bewerkt.id }
+                ?: error("De kaart staat niet meer in de collectie.")
+            val correctie = bewerkt.copy(laatstToegevoegd = oorspronkelijk.laatstToegevoegd)
+            val dezelfde = lijst.firstOrNull {
+                it.id != bewerkt.id && it.variantSleutel() == correctie.variantSleutel()
+            }
+            if (dezelfde == null) {
+                val waarden = correctie.naarValues()
+                waarden.put("toegevoegd_op", oorspronkelijk.laatstToegevoegd)
+                check(db.update("kaarten", waarden, "id = ?", arrayOf(bewerkt.id.toString())) == 1)
+                db.setTransactionSuccessful()
+                return false
+            }
+            val samengevoegd = combineerVarianten(dezelfde, correctie)
+            val waarden = samengevoegd.naarValues()
+            waarden.put("toegevoegd_op", samengevoegd.laatstToegevoegd)
+            check(db.update("kaarten", waarden, "id = ?", arrayOf(dezelfde.id.toString())) == 1)
+            // Scanmomenten blijven bestaan en verwijzen naar de overblijvende kaart.
+            val scanWaarden = ContentValues().apply { put("kaart_id", dezelfde.id) }
+            db.update("scans", scanWaarden, "kaart_id = ?", arrayOf(bewerkt.id.toString()))
+            check(db.delete("kaarten", "id = ?", arrayOf(bewerkt.id.toString())) == 1)
+            db.setTransactionSuccessful()
+            return true
         } finally {
             db.endTransaction()
         }
