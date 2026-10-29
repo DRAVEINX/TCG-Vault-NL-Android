@@ -62,6 +62,16 @@ class KaartViewModel(application: Application) : AndroidViewModel(application) {
         } catch (e: Exception) { _melding.value = "Wijzigen mislukt" }
     }
 
+    fun verwijderKaart(id: Long) = viewModelScope.launch {
+        try {
+            withContext(Dispatchers.IO) { database.verwijder(id) }
+            vernieuw()
+            _melding.value = "Kaart en bijbehorende scanmomenten verwijderd."
+        } catch (e: Exception) {
+            _melding.value = "Verwijderen mislukt: " + (e.localizedMessage ?: "Onbekende fout")
+        }
+    }
+
     fun exporteerBackup(uri: Uri) = viewModelScope.launch {
         try {
             val aantal = withContext(Dispatchers.IO) {
