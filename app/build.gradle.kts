@@ -12,8 +12,8 @@ android {
         applicationId = "nl.tcgvault.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 5
-        versionName = "0.5.0"
+        versionCode = 6
+        versionName = "0.6.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     // De GitHub debug-APK draait naast een eerder geïnstalleerde testapp.
