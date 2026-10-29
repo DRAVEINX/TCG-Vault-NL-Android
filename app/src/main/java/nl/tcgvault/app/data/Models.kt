@@ -43,7 +43,7 @@ fun combineerVarianten(bestaand: Verzamelkaart, bewerkt: Verzamelkaart): Verzame
     val som = bestaand.aantal.toLong() + bewerkt.aantal.toLong()
     require(som in 1..100_000) { "Te veel kaarten om samen te voegen." }
     val notities = listOf(bestaand.notitie.trim(), bewerkt.notitie.trim())
-        .filter { it.isNotBlank() }.distinct().joinToString("\\n")
+        .filter { it.isNotBlank() }.distinct().joinToString("\n")
     return bewerkt.copy(
         id = bestaand.id,
         aantal = som.toInt(),
