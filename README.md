@@ -1,6 +1,25 @@
-# TCG Vault NL — Android-app (bèta 0.5)
+# TCG Vault NL — Android-app (bèta 0.6)
 
 Een Nederlandstalige **native Android-app** voor Pokémon, Magic: The Gathering, One Piece, Yu-Gi-Oh! en Riftbound. Gebouwd met Kotlin, Jetpack Compose, Google ML Kit en SQLite.
+
+## Nieuw in 0.6
+
+- **Duidelijkere automatische kaartmatching:** de app beoordeelt herkende kaartnamen, volledige setcodes (One Piece en Yu-Gi-Oh!) en nummerfracties (bijvoorbeeld `025/198` bij Pokémon). De zoekresultaten krijgen begrijpelijke labels zoals **Sterke tekstmatch**, **Goede tekstmatch**, **Naam komt overeen** of **Nummer wijkt af**.
+- **Geen onterechte zekerheid:** labels zijn alleen een *tekstvergelijking*, geen visuele verificatie of officiële bevestiging van de exacte druk, taal, editie, foil of zeldzaamheid. Je kiest en bevestigt de juiste kaart zelf.
+- **Zoekterm corrigeren tijdens matchkeuze:** het resultaatvenster heeft nu een veld **Kaartnaam aanpassen** en **Opnieuw zoeken met deze naam**, zodat je een verkeerd gelezen naam kunt verbeteren zonder opnieuw een foto te maken.
+- **Dieper zoeken naar Pokémon-drukken:** als OCR een kaartnummer in de vorm `025/198` leest, doorzoekt de app maximaal drie cataloguspagina's, in plaats van altijd na de eerste pagina te stoppen. Nog altijd kunnen oudere of speciale kaarten ontbreken.
+- **Meer Magic en Yu-Gi-Oh!-uitgaven:** Scryfall-query's nemen meer en recentere fysieke drukken mee; Yu-Gi-Oh! toont meerdere beschikbare sets in plaats van standaard de eerste. Een volledige Yu-Gi-Oh!-setcode heeft voorrang.
+- **One Piece:** zoekt ook op de herkende volledige kaartcode, zelfs wanneer OCR geen bruikbare kaartnaam kan vinden.
+- **Extra tests:** controleert onder andere Pokémon-nummers, Japanse namen, Yu-Gi-Oh!- en One Piece-codes en Unicode-varianten van kaarttekst.
+
+### Test de verbeterde scanner
+
+1. Kies een kaartspel op **Scannen**, maak een scherpe foto en bekijk de mogelijke matches.
+2. Vergelijk de tekstmatch-uitleg, kaartillustratie, set, nummer en uitvoering. Ook een sterke tekstmatch kan de verkeerde druk opleveren.
+3. Staat de kaart er niet bij? Typ de correcte naam in **Kaartnaam aanpassen** en kies **Opnieuw zoeken**.
+4. Kies de juiste kaart en controleer alle velden in het bevestigingsscherm, voordat je hem opslaat.
+
+**Bewaar je collectie:** voordat je een nieuwe GitHub-debugversie installeert, maak je via **Portfolio → Back-up maken** eerst een JSON-back-up. Elke GitHub-run kan een andere testondertekening hebben; oudere versies hoeven daarom niet direct overschrijfbaar te zijn.
 
 ## Nieuw in 0.5
 
