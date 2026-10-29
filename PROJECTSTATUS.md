@@ -1,22 +1,29 @@
 # TCG Vault NL — Projectstatus
 
-**Android bèta 0.2.0 (29 oktober 2026)**
+**Native Android bèta 0.3.0 — 29 oktober 2026**
 
-## Geïmplementeerd
-- Native Kotlin/Jetpack Compose Android-app met vernieuwde premium donkere Nederlandstalige interface.
-- Startdashboard, scanstudio, collectie, aantallen en dubbelen, lokaal portfolio met delen als tekst.
-- ML Kit OCR op gekozen afbeelding/camerafoto: Latijns, Chinees, Japans en Koreaans.
-- Nieuwe `KaartZoeker.kt`: OCR-gestuurde online voorstellen voor Pokémon (TCGdex), Magic (Scryfall), Yu-Gi-Oh! (YGOPRODeck), One Piece (OPTCG API) en Riftbound (OpenRift).
-- Matchvenster waarmee de gebruiker een kandidaat bevestigt. Set, taal en druk blijven door de gebruiker te controleren.
-- Lokale SQLite-collectie bestaande data compatibel. Er zijn geen databasemigraties nodig.
-- Nieuwe JVM-unit-tests voor kaartnaamregels en tekstdetectie van Aziatische schriften.
-- GitHub Actions bouwt een debug-APK en voert tests uit.
+## Nieuw in 0.3
+- Catalogusafbeeldingen bij ondersteunde Pokémon-, Magic- en One Piece-kaarten, met automatische fallback.
+- Verbeterde sortering van matches op naam en kaartnummer; Magic toont meerdere fysieke drukken.
+- Foto-voorvertoning na scannen of kiezen van een afbeelding.
+- Handmatige cataloguszoekfunctie op kaartnaam wanneer de OCR niet goed werkt.
+- Klikbaar kaartdetailvenster in de collectie met afbeelding en kaartinformatie.
+- SQLite-databasemigratie 1 → 2, die bestaande kaartgegevens behoudt.
+- Tests voor kaartnummerherkenning, verschillende TCG-codes en Aziatische tekens.
 
-## Grenzen van deze bèta
-- Het is **geen garantie op exacte automatische identificatie**: catalogi, OCR en uitgaven verschillen per taal/spel. Er is geen visuele kaartbeeld-fingerprint.
-- De kaartfoto wordt niet naar kaartcatalogi verstuurd; herkende zoektekst wél. Collectiongegevens blijven lokaal.
-- Geen actuele Cardmarket-prijzen, geen geautoriseerde Cardmarket API, geen cloudaccounts of publiek portfolio.
-- Geen volledige ondersteuning voor **alle** kaarttalen. Handmatige invoer blijft nodig voor niet-herkende schriften, drukvarianten en promo's.
-- De debug-APK moet op echte toestellen getest worden; een succesvolle CI is geen vervanging voor camera-, netwerk- en toesteltests.
+## Bestaande functies
+- Volledig Nederlandstalige Kotlin/Jetpack Compose-interface en donker verzamelthema.
+- Vijf TCG's: Pokémon, Magic, One Piece, Yu-Gi-Oh! en Riftbound.
+- ML Kit OCR voor Latijns, Chinees, Japans en Koreaans schrift.
+- Online kaartzoekroutes via TCGdex, Scryfall, YGOPRODeck, OPTCG API en OpenRift, met manuele bevestiging.
+- Lokale SQLite-collectie, dubbelen, aantallen, scanrecords en eigen prijsindicaties.
+- Portfolio delen als tekst via Android.
 
-Zie [README.md](README.md) voor installatie, scanstappen, privacy en bronvermelding.
+## Wat is nog niet af
+- Geen gegarandeerde identieke kaartmatch voor iedere druk, taal, set en foil.
+- Geen geautoriseerde live Cardmarket-koppeling of automatisch bewezen actuele prijzen.
+- Geen openbaar online portfolio, accounts, cloudsync of backup/export.
+- Yu-Gi-Oh! en Riftbound gebruiken nog gestileerde placeholderafbeeldingen wegens voorwaarden en afbeeldingsrechten.
+- Camera-, API- en layoutgedrag moeten nog op echte Android-toestellen door gebruikers worden getest.
+
+De GitHub Actions-workflow voert unit-tests uit en bouwt een debug-APK. Een geslaagde workflow is geen garantie voor perfecte scans.
