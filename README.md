@@ -18,6 +18,8 @@ Een Nederlandstalige **native Android-app** voor Pokémon, Magic: The Gathering,
 4. Op een ander Android-toestel: installeer TCG Vault NL, kies **Back-up herstellen** en selecteer het bestand.
 5. Lees de waarschuwing: **herstellen VERVANGT alle kaarten en scanmomenten op dat toestel**. Sla eerst eventuele nieuw toegevoegde kaarten op in een aparte back-up.
 
+**Opmerking voor gebruikers van versie 0.3:** deze oudere versie heeft nog geen JSON-back-upfunctie. De nieuwe debug-bèta wordt naast de oude geïnstalleerd, zodat je daar je oude collectie kunt blijven bekijken; directe automatische overdracht is nog niet mogelijk. Verwijder de oude app niet zolang je die verzameling wilt bewaren.
+
 De back-up bevat persoonsgegevens die je zelf in notities of OCR-scans hebt opgeslagen. Deel het bestand alleen met mensen die je vertrouwt. Hij bevat geen camerafoto's of de oorspronkelijke afbeeldingsbestanden; catalogusafbeeldingen worden opnieuw online geladen. Er is geen automatische cloud-back-up of synchronisatie.
 
 ## Nieuw in 0.3
@@ -66,12 +68,15 @@ De back-up bevat persoonsgegevens die je zelf in notities of OCR-scans hebt opge
 
 ## Installeren / bouwen
 
+Deze repository bouwt automatisch een debug-APK via GitHub Actions. Debugbouwversies kunnen per GitHub-run met een andere handtekening worden ondertekend. Installeer ze daarom niet blind over een bestaande bètaversie met waardevolle lokale gegevens: maak altijd eerst een JSON-back-up. Bij een handtekeningconflict kun je de oude bèta pas verwijderen nadat je het back-upbestand hebt gecontroleerd.
+
 Deze repository bouwt automatisch een debug-APK via GitHub Actions:
 
 1. Ga naar [GitHub Actions — Android bouwen](https://github.com/DRAVEINX/TCG-Vault-NL-Android/actions).
 2. Open de nieuwste **geslaagde** build.
 3. Scroll naar **Artifacts**, kies `tcg-vault-nl-debug-apk` en pak de ZIP uit.
 4. Installeer `app-debug.apk` op je Android-telefoon (sta installatie uit deze bron toe, indien nodig).
+5. **Belangrijk:** deze GitHub-debugversie heet `TCG Vault NL Bèta` en gebruikt het aparte pakket `nl.tcgvault.app.beta`. Hij staat dus **naast** een eerder geïnstalleerde `TCG Vault NL`-app. De oude collectie blijft in de oude app en wordt **niet automatisch overgenomen**. De nieuwe bèta begint met een lege verzameling.
 
 Android Studio: open de repository, gebruik JDK 17 en Android SDK 35. De GitHub-workflow gebruikt Gradle 8.11.1 en bouwt met `gradle :app:testDebugUnitTest` en `gradle :app:assembleDebug`.
 
