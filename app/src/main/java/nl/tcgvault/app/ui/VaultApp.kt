@@ -40,6 +40,8 @@ import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.SaveAlt
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Sort
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -86,6 +88,7 @@ fun VaultApp(vm: KaartViewModel = viewModel()) {
     val context = LocalContext.current
     val kaarten by vm.kaarten.collectAsState()
     val recenteScans by vm.scans.collectAsState()
+    val scanhistorie by vm.historie.collectAsState()
     val melding by vm.melding.collectAsState()
     val snackbarHost = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -197,7 +200,7 @@ fun VaultApp(vm: KaartViewModel = viewModel()) {
                     Row(Modifier.padding(horizontal = 11.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) {
                         Box(Modifier.size(6.dp).background(Accent, CircleShape))
                         Spacer(Modifier.width(7.dp))
-                        Text("BÈTA 0.4", color = Licht, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        Text("BÈTA 0.5", color = Licht, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -245,10 +248,11 @@ fun VaultApp(vm: KaartViewModel = viewModel()) {
                     zoekInCatalogus = ::zoekOpNaam,
                     kiesFoto = { galerij.launch("image/*") }, handmatig = { ocrTekst = null; gekozenMatch = null; dialoog = true }
                 )
-                Pagina.COLLECTIE -> CollectiePagina(kaarten, vm::wijzigAantal)
+                Pagina.COLLECTIE -> CollectiePagina(kaarten, vm::wijzigAantal, vm::werkKaartBij)
                 Pagina.PORTFOLIO -> PortfolioPagina(
                     kaarten = kaarten,
                     recenteScans = recenteScans,
+                    scanhistorie = scanhistorie,
                     delen = {
                         val overzicht = maakPortfolioTekst(kaarten)
                         val intent = Intent(Intent.ACTION_SEND).apply {
@@ -600,8 +604,12 @@ private fun ScannerPagina(
 }
 
 @Composable
-private fun CollectiePagina(kaarten: List<Verzamelkaart>, wijzigAantal: (Long, Int) -> Unit) {
+private fun CollectiePagina(
+    kaarten: List<Verzamelkaart>, wijzigAantal: (Long, Int) -> Unit,
+    bewerkKaart: (Verzamelkaart) -> Unit
+) {
     var detailKaart by remember { mutableStateOf<Verzamelkaart?>(null) }
+    var kaartInBewerking by remember { mutableStateOf<Verzamelkaart?>(null) }
     var zoekterm by rememberSaveable { mutableStateOf("") }
     var filterSpel by rememberSaveable { mutableStateOf("Alle spellen") }
     var alleenDubbel by rememberSaveable { mutableStateOf(false) }
@@ -671,7 +679,21 @@ private fun CollectiePagina(kaarten: List<Verzamelkaart>, wijzigAantal: (Long, I
             }
         }
         detailKaart?.let { kaart ->
-            KaartDetailDialoog(kaart, sluiten = { detailKaart = null })
+            KaartDetailDialoog(
+                kaart, sluiten = { detailKaart = null },
+                bewerken = { detailKaart = null; kaartInBewerking = kaart }
+            )
+        }
+        kaartInBewerking?.let { kaart ->
+            KaartDialoog(
+                spel = kaart.spel, herkendeTekst = null, suggestie = null,
+                bestaandeKaart = kaart,
+                sluiten = { kaartInBewerking = null },
+                opslaan = { aangepast ->
+                    bewerkKaart(aangepast)
+                    kaartInBewerking = null
+                }
+            )
         }
     }
 }
@@ -735,12 +757,14 @@ private fun KaartRij(kaart: Verzamelkaart, wijzigAantal: (Long, Int) -> Unit, be
 private fun PortfolioPagina(
     kaarten: List<Verzamelkaart>,
     recenteScans: List<ScanMoment>,
+    scanhistorie: List<ScanMoment>,
     delen: () -> Unit,
     backupMaken: () -> Unit,
     backupHerstellen: () -> Unit
 ) {
     val totaal = kaarten.sumOf { it.aantal }
     val dubbelen = kaarten.sumOf { (it.aantal - 1).coerceAtLeast(0) }
+    var openHistorie by remember { mutableStateOf(false) }
     LazyColumn(
         Modifier.fillMaxSize(),
         contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
@@ -860,6 +884,17 @@ private fun PortfolioPagina(
                     }
                 }
             }
+            item {
+                OutlinedButton(
+                    onClick = { openHistorie = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Default.History, null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Bekijk scanhistorie")
+                }
+            }
             items(recenteScans) { scan ->
                 Surface(
                     color = Paneel, shape = RoundedCornerShape(15.dp),
@@ -916,6 +951,9 @@ private fun PortfolioPagina(
             Text("Je portfolio wordt momenteel als tekst gedeeld. Openbare profielen komen in een latere versie.",
                 color = Muted, fontSize = 12.sp)
         }
+    }
+    if (openHistorie) {
+        ScanhistorieDialoog(scanhistorie, sluiten = { openHistorie = false })
     }
 }
 
@@ -977,25 +1015,48 @@ private fun Keuzelijst(label: String, waarde: String, opties: List<String>, wijz
 @Composable
 private fun KaartDialoog(
     spel: Kaartspel, herkendeTekst: String?, suggestie: KaartKandidaat?,
-    sluiten: () -> Unit, opslaan: (Verzamelkaart) -> Unit
+    sluiten: () -> Unit, opslaan: (Verzamelkaart) -> Unit,
+    bestaandeKaart: Verzamelkaart? = null
 ) {
-    var gekozenSpel by remember(suggestie) { mutableStateOf(suggestie?.spel ?: spel) }
-    var naam by remember(suggestie, herkendeTekst) { mutableStateOf(suggestie?.naam ?: herkendeTekst?.let(KaartTekstParser::naamVoorstel).orEmpty()) }
-    var setNaam by remember(suggestie) { mutableStateOf(suggestie?.setNaam.orEmpty()) }
-    var nummer by remember(suggestie, herkendeTekst) { mutableStateOf(suggestie?.nummer ?: herkendeTekst?.let(KaartTekstParser::kaartnummer).orEmpty()) }
-    var taal by remember(suggestie) { mutableStateOf(suggestie?.taal ?: "Engels") }
-    var vrijeTaal by remember { mutableStateOf("") }
-    var conditie by remember { mutableStateOf("Near Mint") }
-    var uitvoering by remember { mutableStateOf("Normaal") }
-    var aantalTekst by remember { mutableStateOf("1") }
-    var prijsTekst by remember { mutableStateOf("") }
-    var notitie by remember { mutableStateOf("") }
+    var gekozenSpel by remember(bestaandeKaart, suggestie) {
+        mutableStateOf(bestaandeKaart?.spel ?: suggestie?.spel ?: spel)
+    }
+    var naam by remember(bestaandeKaart, suggestie, herkendeTekst) {
+        mutableStateOf(bestaandeKaart?.naam ?: suggestie?.naam ?: herkendeTekst?.let(KaartTekstParser::naamVoorstel).orEmpty())
+    }
+    var setNaam by remember(bestaandeKaart, suggestie) {
+        mutableStateOf(bestaandeKaart?.setNaam ?: suggestie?.setNaam.orEmpty())
+    }
+    var nummer by remember(bestaandeKaart, suggestie, herkendeTekst) {
+        mutableStateOf(bestaandeKaart?.kaartnummer ?: suggestie?.nummer ?: herkendeTekst?.let(KaartTekstParser::kaartnummer).orEmpty())
+    }
+    var taal by remember(bestaandeKaart, suggestie) {
+        val initieel = bestaandeKaart?.taal ?: suggestie?.taal ?: "Engels"
+        mutableStateOf(if (initieel in KAARTTALEN) initieel else "Overig (zelf invullen)")
+    }
+    var vrijeTaal by remember(bestaandeKaart) {
+        mutableStateOf(bestaandeKaart?.taal?.takeIf { it !in KAARTTALEN }.orEmpty())
+    }
+    var conditie by remember(bestaandeKaart) { mutableStateOf(bestaandeKaart?.conditie ?: "Near Mint") }
+    var uitvoering by remember(bestaandeKaart) { mutableStateOf(bestaandeKaart?.uitvoering ?: "Normaal") }
+    var aantalTekst by remember(bestaandeKaart) { mutableStateOf(bestaandeKaart?.aantal?.toString() ?: "1") }
+    var prijsTekst by remember(bestaandeKaart) {
+        mutableStateOf(bestaandeKaart?.eigenPrijsCent?.let {
+            BigDecimal(it).movePointLeft(2).stripTrailingZeros().toPlainString()
+        }.orEmpty())
+    }
+    var notitie by remember(bestaandeKaart) { mutableStateOf(bestaandeKaart?.notitie.orEmpty()) }
     var fout by remember { mutableStateOf<String?>(null) }
     Dialog(onDismissRequest = sluiten) {
         Surface(color = Paneel, shape = RoundedCornerShape(22.dp), modifier = Modifier.fillMaxWidth()) {
             Column {
                 Column(Modifier.fillMaxWidth().weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(19.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(if (suggestie != null) "Kaartmatch controleren" else if (herkendeTekst != null) "Scan controleren" else "Kaart toevoegen", color = Licht, fontSize = 21.sp, fontWeight = FontWeight.Black)
+                    Text(
+                        if (bestaandeKaart != null) "Kaartgegevens bewerken"
+                        else if (suggestie != null) "Kaartmatch controleren"
+                        else if (herkendeTekst != null) "Scan controleren" else "Kaart toevoegen",
+                        color = Licht, fontSize = 21.sp, fontWeight = FontWeight.Black
+                    )
                     if (suggestie != null) {
                         Text("Voorstel via " + suggestie.bron + " • controleer set, taal en uitvoering.", color = Accent, fontSize = 12.sp)
                         if (suggestie.afbeeldingUrl.isNotBlank()) {
@@ -1007,7 +1068,12 @@ private fun KaartDialoog(
                             }
                         }
                     }
-                    Text("Controleer alle gegevens. Dezelfde variant wordt als dubbel opgeteld.", color = Muted, fontSize = 12.sp)
+                    Text(
+                        if (bestaandeKaart != null)
+                            "Corrigeer de kaart. Als de variant al bestaat, worden aantallen en scanmomenten samengevoegd."
+                        else "Controleer alle gegevens. Dezelfde variant wordt als dubbel opgeteld.",
+                        color = Muted, fontSize = 12.sp
+                    )
                     if (herkendeTekst != null) {
                         Surface(color = Achtergrond, shape = RoundedCornerShape(12.dp)) {
                             Column(Modifier.padding(12.dp)) {
@@ -1051,13 +1117,33 @@ private fun KaartDialoog(
                             else -> null
                         }
                         if (fout == null) opslaan(Verzamelkaart(
+                            id = bestaandeKaart?.id ?: 0L,
                             spel = gekozenSpel, naam = naam.trim(), setNaam = setNaam.trim(),
                             kaartnummer = nummer.trim(), taal = gekozenTaal,
                             uitvoering = uitvoering, conditie = conditie, aantal = aantal!!,
                             eigenPrijsCent = cent, notitie = notitie.trim(),
-                            afbeeldingUrl = if (gekozenSpel == suggestie?.spel) suggestie.afbeeldingUrl else "",
-                            catalogusBron = if (gekozenSpel == suggestie?.spel) suggestie.bron else "",
-                            catalogusId = if (gekozenSpel == suggestie?.spel) suggestie.bronId else ""
+                            laatstToegevoegd = bestaandeKaart?.laatstToegevoegd ?: System.currentTimeMillis(),
+                            afbeeldingUrl = if (bestaandeKaart != null) {
+                                if (gekozenSpel == bestaandeKaart.spel &&
+                                    naam.trim() == bestaandeKaart.naam &&
+                                    setNaam.trim() == bestaandeKaart.setNaam &&
+                                    nummer.trim() == bestaandeKaart.kaartnummer
+                                ) bestaandeKaart.afbeeldingUrl else ""
+                            } else if (gekozenSpel == suggestie?.spel) suggestie.afbeeldingUrl else "",
+                            catalogusBron = if (bestaandeKaart != null) {
+                                if (gekozenSpel == bestaandeKaart.spel &&
+                                    naam.trim() == bestaandeKaart.naam &&
+                                    setNaam.trim() == bestaandeKaart.setNaam &&
+                                    nummer.trim() == bestaandeKaart.kaartnummer
+                                ) bestaandeKaart.catalogusBron else ""
+                            } else if (gekozenSpel == suggestie?.spel) suggestie.bron else "",
+                            catalogusId = if (bestaandeKaart != null) {
+                                if (gekozenSpel == bestaandeKaart.spel &&
+                                    naam.trim() == bestaandeKaart.naam &&
+                                    setNaam.trim() == bestaandeKaart.setNaam &&
+                                    nummer.trim() == bestaandeKaart.kaartnummer
+                                ) bestaandeKaart.catalogusId else ""
+                            } else if (gekozenSpel == suggestie?.spel) suggestie.bronId else ""
                         ))
                     }, modifier = Modifier.weight(1.2f)) {
                         Icon(Icons.Default.CheckCircle, null, modifier = Modifier.size(17.dp))
@@ -1182,7 +1268,7 @@ private fun KaartIllustratie(url: String, spel: Kaartspel, modifier: Modifier = 
 }
 
 @Composable
-private fun KaartDetailDialoog(kaart: Verzamelkaart, sluiten: () -> Unit) {
+private fun KaartDetailDialoog(kaart: Verzamelkaart, sluiten: () -> Unit, bewerken: () -> Unit) {
     Dialog(onDismissRequest = sluiten) {
         Surface(
             color = Paneel, shape = RoundedCornerShape(24.dp),
@@ -1222,11 +1308,23 @@ private fun KaartDetailDialoog(kaart: Verzamelkaart, sluiten: () -> Unit) {
                     Text("Afbeelding en gegevens zijn een catalogusvoorstel. Geen geverifieerde Cardmarket-prijs.",
                         color = Muted, fontSize = 10.sp, textAlign = TextAlign.Center)
                 }
-                OutlinedButton(
-                    onClick = sluiten,
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth().padding(14.dp)
-                ) { Text("Sluiten") }
+                Row(
+                    Modifier.fillMaxWidth().padding(14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(9.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = sluiten, shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.weight(1f)
+                    ) { Text("Sluiten") }
+                    Button(
+                        onClick = bewerken, shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.weight(1.3f)
+                    ) {
+                        Icon(Icons.Default.Edit, null, modifier = Modifier.size(17.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Bewerken")
+                    }
+                }
             }
         }
     }
