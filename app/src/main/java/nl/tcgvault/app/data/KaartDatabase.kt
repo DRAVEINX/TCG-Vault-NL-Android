@@ -7,7 +7,7 @@ import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 
 /** Lokale opslag per apparaat. Geen account, geen onbedoelde online synchronisatie. */
-class KaartDatabase(context: Context) : SQLiteOpenHelper(context, "tcg_vault.db", null, 1) {
+class KaartDatabase(context: Context) : SQLiteOpenHelper(context, "tcg_vault.db", null, 2) {
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL("""
             CREATE TABLE kaarten (
@@ -16,6 +16,9 @@ class KaartDatabase(context: Context) : SQLiteOpenHelper(context, "tcg_vault.db"
                 nummer TEXT NOT NULL, taal TEXT NOT NULL, uitvoering TEXT NOT NULL,
                 conditie TEXT NOT NULL, aantal INTEGER NOT NULL CHECK(aantal > 0),
                 eigen_prijs_cent INTEGER, notitie TEXT NOT NULL,
+                afbeelding_url TEXT NOT NULL DEFAULT '',
+                catalogus_bron TEXT NOT NULL DEFAULT '',
+                catalogus_id TEXT NOT NULL DEFAULT '',
                 toegevoegd_op INTEGER NOT NULL
             )
         """.trimIndent())
@@ -30,7 +33,13 @@ class KaartDatabase(context: Context) : SQLiteOpenHelper(context, "tcg_vault.db"
         """.trimIndent())
         db.execSQL("CREATE INDEX idx_scans_kaart_id ON scans(kaart_id)")
     }
-    override fun onUpgrade(db: SQLiteDatabase, oud: Int, nieuw: Int) = Unit
+    override fun onUpgrade(db: SQLiteDatabase, oud: Int, nieuw: Int) {
+        if (oud < 2) {
+            db.execSQL("ALTER TABLE kaarten ADD COLUMN afbeelding_url TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE kaarten ADD COLUMN catalogus_bron TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE kaarten ADD COLUMN catalogus_id TEXT NOT NULL DEFAULT ''")
+        }
+    }
     override fun onConfigure(db: SQLiteDatabase) {
         super.onConfigure(db)
         db.setForeignKeyConstraintsEnabled(true)
@@ -58,6 +67,11 @@ class KaartDatabase(context: Context) : SQLiteOpenHelper(context, "tcg_vault.db"
                     put("aantal", bestaand.aantal + kaart.aantal.coerceAtLeast(1))
                     put("toegevoegd_op", System.currentTimeMillis())
                     if (kaart.eigenPrijsCent != null) put("eigen_prijs_cent", kaart.eigenPrijsCent)
+                    if (kaart.afbeeldingUrl.isNotBlank()) put("afbeelding_url", kaart.afbeeldingUrl)
+                    if (kaart.catalogusId.isNotBlank()) {
+                        put("catalogus_bron", kaart.catalogusBron)
+                        put("catalogus_id", kaart.catalogusId)
+                    }
                 }
                 db.update("kaarten", values, "id = ?", arrayOf(bestaand.id.toString()))
                 bestaand.id
@@ -98,6 +112,9 @@ class KaartDatabase(context: Context) : SQLiteOpenHelper(context, "tcg_vault.db"
         put("conditie", conditie.trim()); put("aantal", aantal.coerceAtLeast(1))
         if (eigenPrijsCent != null) put("eigen_prijs_cent", eigenPrijsCent)
         put("notitie", notitie.trim()); put("toegevoegd_op", System.currentTimeMillis())
+        put("afbeelding_url", afbeeldingUrl)
+        put("catalogus_bron", catalogusBron)
+        put("catalogus_id", catalogusId)
     }
 
     private fun Cursor.alsKaart() = Verzamelkaart(
@@ -113,6 +130,9 @@ class KaartDatabase(context: Context) : SQLiteOpenHelper(context, "tcg_vault.db"
         eigenPrijsCent = getColumnIndexOrThrow("eigen_prijs_cent").let { if (isNull(it)) null else getLong(it) },
         notitie = getString(getColumnIndexOrThrow("notitie")),
         laatstToegevoegd = getLong(getColumnIndexOrThrow("toegevoegd_op")),
-        scanAantal = getInt(getColumnIndexOrThrow("scan_totaal"))
+        scanAantal = getInt(getColumnIndexOrThrow("scan_totaal")),
+        afbeeldingUrl = getString(getColumnIndexOrThrow("afbeelding_url")),
+        catalogusBron = getString(getColumnIndexOrThrow("catalogus_bron")),
+        catalogusId = getString(getColumnIndexOrThrow("catalogus_id"))
     )
 }
