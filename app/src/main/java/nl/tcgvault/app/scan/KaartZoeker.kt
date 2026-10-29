@@ -22,7 +22,8 @@ data class KaartKandidaat(
     val nummer: String = "",
     val taal: String = "Engels",
     val bron: String,
-    val bronId: String = ""
+    val bronId: String = "",
+    val afbeeldingUrl: String = ""
 )
 
 data class ZoekUitkomst(val kandidaten: List<KaartKandidaat>, val bericht: String? = null)
@@ -61,6 +62,19 @@ object KaartZoeker {
             .take(5).toList()
     }
 
+    /** Score op kaartnummer en naam, om verwisselingen van herdrukken te verminderen. */
+    fun score(kandidaat: KaartKandidaat, ocr: String): Int {
+        val tekst = ocr.lowercase(Locale.ROOT)
+        val naam = kandidaat.naam.lowercase(Locale.ROOT)
+        val gevondenNummer = nummer.find(ocr)?.value?.substringBefore("/")?.trimStart('0')
+        val kaartNummer = kandidaat.nummer.substringBefore("/").trimStart('0')
+        val codeMatch = kandidaat.nummer.length >= 5 && tekst.contains(kandidaat.nummer.lowercase(Locale.ROOT))
+        return (if (codeMatch) 120 else 0) +
+            (if (gevondenNummer != null && kaartNummer == gevondenNummer) 65 else 0) +
+            (if (naam.isNotBlank() && tekst.contains(naam)) 30 else 0) -
+            (if (kandidaat.naam.isBlank()) 100 else 0)
+    }
+
     suspend fun zoek(spel: Kaartspel, ocr: String): ZoekUitkomst = withContext(Dispatchers.IO) {
         val namen = naamSuggesties(ocr)
         if (namen.isEmpty() && spel != Kaartspel.YUGIOH) {
@@ -77,7 +91,7 @@ object KaartZoeker {
             val uniek = resultaten.distinctBy {
                 listOf(it.spel.name, it.naam, it.setNaam, it.nummer, it.taal)
                     .joinToString("|").lowercase(Locale.ROOT)
-            }.take(12)
+            }.sortedByDescending { score(it, ocr) }.take(12)
             ZoekUitkomst(
                 uniek,
                 if (uniek.isEmpty()) "Geen zekere catalogusmatch gevonden. Gebruik handmatige invoer of probeer een duidelijkere foto." else null
@@ -99,7 +113,9 @@ object KaartZoeker {
                 val id = kaart.optString("id")
                 val lokaal = kaart.optString("localId")
                 val set = id.substringBeforeLast("-", "")
-                totaal.add(KaartKandidaat(Kaartspel.POKEMON, kaart.optString("name"), set, lokaal, taal = taalNaam, bron = "TCGdex", bronId = id))
+                val basis = kaart.optString("image")
+                val afbeelding = if (basis.startsWith("https://assets.tcgdex.net/")) "$basis/low.webp" else ""
+                totaal.add(KaartKandidaat(Kaartspel.POKEMON, kaart.optString("name"), set, lokaal, taal = taalNaam, bron = "TCGdex", bronId = id, afbeeldingUrl = afbeelding))
             }
             if (totaal.isNotEmpty()) break
         }
@@ -109,19 +125,37 @@ object KaartZoeker {
     }
 
     private fun magic(namen: List<String>): List<KaartKandidaat> {
-        val totaal = mutableListOf<KaartKandidaat>()
-        for (naam in namen.take(3)) {
-            val kaart = haalObject("https://api.scryfall.com/cards/named?fuzzy=" + Uri.encode(naam))
-            if (kaart.optString("object") == "card") {
-                totaal.add(KaartKandidaat(
-                    Kaartspel.MAGIC, kaart.optString("name"), kaart.optString("set_name"),
-                    kaart.optString("collector_number"), bron = "Scryfall",
-                    bronId = kaart.optString("id")
-                ))
-                break
+        // Eerst de kaartnaam benaderen, daarna verschillende fysieke drukken aanbieden.
+        // Zonder deze stap kan een willekeurige Scryfall-druk onterecht exact lijken.
+        for (voorstel in namen.take(3)) {
+            val kaart = haalObject("https://api.scryfall.com/cards/named?fuzzy=" + Uri.encode(voorstel))
+            if (kaart.optString("object") != "card") continue
+            val naam = kaart.optString("name")
+            val zoekQuery = "!\"" + naam.replace("\"", "") + "\" game:paper"
+            val drukken = haalObject(
+                "https://api.scryfall.com/cards/search?q=" + Uri.encode(zoekQuery) + "&unique=prints&order=released"
+            ).optJSONArray("data")
+            val uitgaven = drukken?.let { lijst ->
+                (0 until minOf(lijst.length(), 24)).mapNotNull { lijst.optJSONObject(it) }
+            } ?: listOf(kaart)
+            return uitgaven.map { item ->
+                val afbeeldingen = item.optJSONObject("image_uris")
+                    ?: item.optJSONArray("card_faces")?.optJSONObject(0)?.optJSONObject("image_uris")
+                val afbeelding = afbeeldingen?.optString("small").orEmpty()
+                KaartKandidaat(
+                    Kaartspel.MAGIC, item.optString("name"), item.optString("set_name"),
+                    item.optString("collector_number"),
+                    taal = when (item.optString("lang")) {
+                        "ja" -> "Japans"; "ko" -> "Koreaans"; "zhs" -> "Chinees (vereenvoudigd)"
+                        "zht" -> "Chinees (traditioneel)"; "de" -> "Duits"; "fr" -> "Frans"
+                        else -> "Engels"
+                    },
+                    bron = "Scryfall", bronId = item.optString("id"),
+                    afbeeldingUrl = if (afbeelding.startsWith("https://cards.scryfall.io/")) afbeelding else ""
+                )
             }
         }
-        return totaal
+        return emptyList()
     }
 
     private fun yugioh(namen: List<String>, ocr: String): List<KaartKandidaat> {
@@ -170,7 +204,8 @@ object KaartZoeker {
                 if (naamKaart.isNotBlank()) {
                     kandidaten.add(KaartKandidaat(
                         Kaartspel.ONE_PIECE, naamKaart, kaart.optString("set"),
-                        kaart.optString("code"), bron = "OPTCG API", bronId = kaart.optString("id")
+                        kaart.optString("code"), bron = "OPTCG API", bronId = kaart.optString("id"),
+                        afbeeldingUrl = kaart.optString("image").takeIf { it.startsWith("https://") }.orEmpty()
                     ))
                 }
             }
@@ -187,8 +222,8 @@ object KaartZoeker {
             val data = obj.opt("data")
             val lijst = when (data) {
                 is JSONArray -> data
-                is JSONObject -> data.optJSONArray("cards") ?: data.optJSONArray("results") ?: JSONArray()
-                else -> obj.optJSONArray("cards") ?: JSONArray()
+                is JSONObject -> data.optJSONArray("cards") ?: data.optJSONArray("results") ?: data.optJSONArray("items") ?: JSONArray()
+                else -> obj.optJSONArray("cards") ?: obj.optJSONArray("results") ?: JSONArray()
             }
             val kandidaten = mutableListOf<KaartKandidaat>()
             for (i in 0 until minOf(15, lijst.length())) {
@@ -219,7 +254,7 @@ object KaartZoeker {
         verbinding.connectTimeout = 7000
         verbinding.readTimeout = 7000
         verbinding.setRequestProperty("Accept", "application/json")
-        verbinding.setRequestProperty("User-Agent", "TCGVaultNL/0.2 (Android collector app)")
+        verbinding.setRequestProperty("User-Agent", "TCGVaultNL/0.3 (catalog search; github.com/DRAVEINX/TCG-Vault-NL-Android)")
         try {
             if (verbinding.responseCode !in 200..299) return "{}"
             return verbinding.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
