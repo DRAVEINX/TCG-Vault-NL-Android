@@ -37,6 +37,9 @@ import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Layers
+import androidx.compose.material.icons.filled.SaveAlt
+import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -95,6 +98,7 @@ fun VaultApp(vm: KaartViewModel = viewModel()) {
     var fotoUri by remember { mutableStateOf<Uri?>(null) }
     var laatsteFoto by remember { mutableStateOf<Uri?>(null) }
     var zoekNaam by rememberSaveable { mutableStateOf("") }
+    var backupOmTeHerstellen by remember { mutableStateOf<Uri?>(null) }
 
     fun verwerkAfbeelding(uri: Uri) {
         laatsteFoto = uri
@@ -136,6 +140,14 @@ fun VaultApp(vm: KaartViewModel = viewModel()) {
             } finally { bezig = false }
         }
     }
+
+    val backupOpslaan = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json")
+    ) { uri -> if (uri != null) vm.exporteerBackup(uri) }
+
+    val backupOpenen = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri -> if (uri != null) backupOmTeHerstellen = uri }
 
     val galerij = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri != null) verwerkAfbeelding(uri)
@@ -182,7 +194,7 @@ fun VaultApp(vm: KaartViewModel = viewModel()) {
                     Row(Modifier.padding(horizontal = 11.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) {
                         Box(Modifier.size(6.dp).background(Accent, CircleShape))
                         Spacer(Modifier.width(7.dp))
-                        Text("BÈTA 0.3", color = Licht, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        Text("BÈTA 0.4", color = Licht, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -231,16 +243,46 @@ fun VaultApp(vm: KaartViewModel = viewModel()) {
                     kiesFoto = { galerij.launch("image/*") }, handmatig = { ocrTekst = null; gekozenMatch = null; dialoog = true }
                 )
                 Pagina.COLLECTIE -> CollectiePagina(kaarten, vm::wijzigAantal)
-                Pagina.PORTFOLIO -> PortfolioPagina(kaarten) {
-                    val overzicht = maakPortfolioTekst(kaarten)
-                    val intent = Intent(Intent.ACTION_SEND).apply {
-                        type = "text/plain"
-                        putExtra(Intent.EXTRA_TEXT, overzicht)
-                    }
-                    context.startActivity(Intent.createChooser(intent, "Deel je collectie"))
-                }
+                Pagina.PORTFOLIO -> PortfolioPagina(
+                    kaarten = kaarten,
+                    delen = {
+                        val overzicht = maakPortfolioTekst(kaarten)
+                        val intent = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, overzicht)
+                        }
+                        context.startActivity(Intent.createChooser(intent, "Deel je collectie"))
+                    },
+                    backupMaken = { backupOpslaan.launch("TCG-Vault-NL-backup.json") },
+                    backupHerstellen = { backupOpenen.launch(arrayOf("application/json", "text/plain", "application/octet-stream")) }
+                )
             }
         }
+    }
+
+    backupOmTeHerstellen?.let { bestand ->
+        AlertDialog(
+            onDismissRequest = { backupOmTeHerstellen = null },
+            containerColor = Paneel,
+            title = { Text("Back-up herstellen?", color = Licht) },
+            text = {
+                Text(
+                    "Dit vervangt ALLE kaarten en opgeslagen scanmomenten op dit toestel door " +
+                        "de inhoud van het gekozen back-upbestand. Maak eerst een back-up van je " +
+                        "huidige verzameling. Een ongeldig bestand wordt geweigerd.",
+                    color = Muted
+                )
+            },
+            confirmButton = {
+                Button(onClick = {
+                    backupOmTeHerstellen = null
+                    vm.importeerBackup(bestand)
+                }) { Text("Ja, vervang mijn collectie") }
+            },
+            dismissButton = {
+                TextButton(onClick = { backupOmTeHerstellen = null }) { Text("Annuleren") }
+            }
+        )
     }
 
     if (toonMatches) {
@@ -559,11 +601,26 @@ private fun CollectiePagina(kaarten: List<Verzamelkaart>, wijzigAantal: (Long, I
     var zoekterm by rememberSaveable { mutableStateOf("") }
     var filterSpel by rememberSaveable { mutableStateOf("Alle spellen") }
     var alleenDubbel by rememberSaveable { mutableStateOf(false) }
+    var sortering by rememberSaveable { mutableStateOf("Recent toegevoegd") }
     val gefilterd = kaarten.filter { kaart ->
         (filterSpel == "Alle spellen" || kaart.spel.titel == filterSpel) &&
         (!alleenDubbel || kaart.aantal > 1) &&
         (zoekterm.isBlank() || listOf(kaart.naam, kaart.setNaam, kaart.kaartnummer, kaart.taal)
             .any { it.contains(zoekterm.trim(), ignoreCase = true) })
+    }
+    val gesorteerd = when (sortering) {
+        "Naam A-Z" -> gefilterd.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.naam })
+        "Meeste exemplaren" -> gefilterd.sortedWith(
+            compareByDescending<Verzamelkaart> { it.aantal }.thenBy { it.naam }
+        )
+        "Meeste dubbelen" -> gefilterd.sortedWith(
+            compareByDescending<Verzamelkaart> { (it.aantal - 1).coerceAtLeast(0) }.thenBy { it.naam }
+        )
+        "Hoogste eigen waarde" -> gefilterd.sortedWith(
+            compareByDescending<Verzamelkaart> { it.eigenPrijsCent?.let { prijs -> prijs * it.aantal } ?: -1L }
+                .thenBy { it.naam }
+        )
+        else -> gefilterd.sortedByDescending { it.laatstToegevoegd }
     }
     Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
         Text("Mijn collectie", fontSize = 28.sp, fontWeight = FontWeight.Black, color = Licht)
@@ -583,12 +640,28 @@ private fun CollectiePagina(kaarten: List<Verzamelkaart>, wijzigAantal: (Long, I
             Spacer(Modifier.width(8.dp))
             FilterChip(selected = alleenDubbel, onClick = { alleenDubbel = !alleenDubbel }, label = { Text("Dubbelen") })
         }
-        Spacer(Modifier.height(12.dp))
-        if (gefilterd.isEmpty()) {
+        Spacer(Modifier.height(8.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Default.Sort, null, tint = Muted, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(7.dp))
+            Box(Modifier.weight(1f)) {
+                Keuzelijst(
+                    "Sorteren", sortering,
+                    listOf("Recent toegevoegd", "Naam A-Z", "Meeste exemplaren", "Meeste dubbelen", "Hoogste eigen waarde")
+                ) { sortering = it }
+            }
+        }
+        Spacer(Modifier.height(7.dp))
+        Text(
+            "" + gefilterd.sumOf { it.aantal } + " kaarten in " + gefilterd.size + " varianten getoond",
+            color = Muted, fontSize = 11.sp
+        )
+        Spacer(Modifier.height(10.dp))
+        if (gesorteerd.isEmpty()) {
             LeegScherm(if (kaarten.isEmpty()) "Nog geen kaarten toegevoegd" else "Geen kaarten gevonden", "Gebruik Scannen of de + knop om kaarten toe te voegen.")
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(bottom = 90.dp)) {
-                items(gefilterd, key = { it.id }) { kaart ->
+                items(gesorteerd, key = { it.id }) { kaart ->
                     KaartRij(kaart, wijzigAantal, bekijk = { detailKaart = it })
                 }
             }
@@ -655,7 +728,12 @@ private fun KaartRij(kaart: Verzamelkaart, wijzigAantal: (Long, Int) -> Unit, be
 }
 
 @Composable
-private fun PortfolioPagina(kaarten: List<Verzamelkaart>, delen: () -> Unit) {
+private fun PortfolioPagina(
+    kaarten: List<Verzamelkaart>,
+    delen: () -> Unit,
+    backupMaken: () -> Unit,
+    backupHerstellen: () -> Unit
+) {
     val totaal = kaarten.sumOf { it.aantal }
     val dubbelen = kaarten.sumOf { (it.aantal - 1).coerceAtLeast(0) }
     LazyColumn(
@@ -717,6 +795,52 @@ private fun PortfolioPagina(kaarten: List<Verzamelkaart>, delen: () -> Unit) {
                         Spacer(Modifier.width(8.dp))
                         Text("Deel mijn portfolio", fontWeight = FontWeight.Bold)
                     }
+                }
+            }
+        }
+        item {
+            Surface(
+                color = Paneel, shape = RoundedCornerShape(20.dp),
+                border = BorderStroke(1.dp, Lijn)
+            ) {
+                Column(Modifier.fillMaxWidth().padding(17.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.SaveAlt, null, tint = Accent, modifier = Modifier.size(22.dp))
+                        Spacer(Modifier.width(9.dp))
+                        Text("Back-up en herstel", color = Licht, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    }
+                    Spacer(Modifier.height(7.dp))
+                    Text(
+                        "Bewaar je hele collectie inclusief aantallen, varianten en scanhistorie " +
+                            "als JSON-bestand op een plek die jij kiest.",
+                        color = Muted, fontSize = 12.sp, lineHeight = 18.sp
+                    )
+                    Spacer(Modifier.height(13.dp))
+                    Button(
+                        onClick = backupMaken,
+                        shape = RoundedCornerShape(13.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.SaveAlt, null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Back-up maken")
+                    }
+                    Spacer(Modifier.height(7.dp))
+                    OutlinedButton(
+                        onClick = backupHerstellen,
+                        shape = RoundedCornerShape(13.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.FolderOpen, null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Back-up herstellen")
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "Let op: herstellen VERVANGT je huidige verzameling. " +
+                            "Kaartafbeeldingen worden opnieuw online geladen.",
+                        color = Goud, fontSize = 11.sp
+                    )
                 }
             }
         }
