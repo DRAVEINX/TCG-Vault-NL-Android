@@ -1,6 +1,22 @@
-# TCG Vault NL — Android-app (bèta 0.4)
+# TCG Vault NL — Android-app (bèta 0.5)
 
 Een Nederlandstalige **native Android-app** voor Pokémon, Magic: The Gathering, One Piece, Yu-Gi-Oh! en Riftbound. Gebouwd met Kotlin, Jetpack Compose, Google ML Kit en SQLite.
+
+## Nieuw in 0.5
+
+- **Kaartgegevens achteraf bewerken:** open **Collectie**, tik op de kaartafbeelding of kaartnaam en kies **Bewerken**. Pas naam, set, kaartnummer, taal, uitvoering, conditie, aantal, eigen prijs en notities aan.
+- **Dubbelen veilig samenvoegen:** als een correctie dezelfde variant oplevert als een bestaande kaart, telt de app de exemplaren bij elkaar en koppelt de bestaande scanmomenten aan de overblijvende kaart. Bestaande notities worden samengevoegd. De gewijzigde prijs uit het bewerkformulier wordt gebruikt; controleer die voordat je opslaat.
+- **Vollediger scanoverzicht:** vanuit **Portfolio → Recent gescand → Bekijk scanhistorie** doorzoek je de **500 recentste** scanmomenten op naam, spel en herkende OCR-tekst. De volledige scanlog blijft onderdeel van de JSON-back-up.
+- **Beschermde verwijderactie:** de minknop kan een kaart niet meer onbedoeld uit je collectie wissen. Wil je de laatste kaart verwijderen, open het detailvenster en kies **Kaart volledig verwijderen**, met een aparte waarschuwing. De gekoppelde scanmomenten worden dan ook verwijderd.
+
+### Zo corrigeer je een onjuist herkende kaart
+
+1. Open **Collectie** en tik op de kaartnaam.
+2. Kies **Bewerken** en corrigeer de foutieve gegevens. Kijk vooral naar set, kaartnummer, taal en foil-uitvoering.
+3. Tik op **Opslaan**. De correctie wordt direct in de lokale database bewaard.
+4. Staat precies dezelfde variant al in je collectie, dan worden beide varianten samengevoegd. Maak bij belangrijke wijzigingen eerst een JSON-back-up.
+
+De kaartafbeelding/catalogusverwijzing wordt uit voorzorg leeggemaakt als je de spel-, naam-, set- of nummeridentiteit wijzigt. Zo wordt een afbeelding van een verkeerd herkende kaart niet als bewijs voor een andere kaart getoond.
 
 ## Nieuw in 0.4
 
@@ -54,7 +70,7 @@ De back-up bevat persoonsgegevens die je zelf in notities of OCR-scans hebt opge
 ## Wat al werkt
 
 - Lokale collectie met filteren, zoeken, talen, varianten en dubbelen.
-- Scanhistorie per opgeslagen kaartvariant (aantal scans), zichtbare recente scanmomenten en aantallen verhogen/verlagen.
+- Scanhistorie per opgeslagen kaartvariant (aantal scans), doorzoekbare scanmomenten, aantallen verhogen/verlagen en kaartgegevens corrigeren.
 - Eigen optionele prijzen per kaart en totaal van **zelf ingevoerde** waarden.
 - Portfolio als tekst delen via andere apps. Nog geen publiek online portfolio of accounts.
 - Volledig Nederlandstalige interface en handmatige kaartinvoer.
