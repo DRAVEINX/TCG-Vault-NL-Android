@@ -39,6 +39,14 @@ object KaartZoeker {
     private val ygoCode = Regex("""\b[A-Z]{2,6}-[A-Z0-9]{3,6}\b""")
     private val nummer = Regex("""\b\d{1,4}\s*/\s*\d{1,4}\b""")
 
+    /** De herkenbare schrijfstijl bepaalt de eerste Pokémon-catalogustaal. */
+    fun catalogusTaal(tekst: String): Pair<String, String> = when {
+        Regex("""[\u3040-\u30ff]""").containsMatchIn(tekst) -> "ja" to "Japans"
+        Regex("""[\uac00-\ud7a3]""").containsMatchIn(tekst) -> "ko" to "Koreaans"
+        Regex("""[\u3400-\u9fff]""").containsMatchIn(tekst) -> "zh-tw" to "Chinees (traditioneel)"
+        else -> "en" to "Engels"
+    }
+
     fun naamSuggesties(ocr: String): List<String> {
         return ocr.lineSequence()
             .map { it.trim().replace(Regex("""\s+"""), " ") }
@@ -81,16 +89,17 @@ object KaartZoeker {
 
     private fun pokemon(namen: List<String>, ocr: String): List<KaartKandidaat> {
         val bekendNummer = nummer.find(ocr)?.value?.substringBefore("/")?.trimStart('0')
+        val (taalCode, taalNaam) = catalogusTaal(ocr)
         val totaal = mutableListOf<KaartKandidaat>()
         for (naam in namen.take(3)) {
-            val url = "https://api.tcgdex.net/v2/en/cards?name=" + Uri.encode(naam) + "&pagination:itemsPerPage=30"
+            val url = "https://api.tcgdex.net/v2/" + taalCode + "/cards?name=" + Uri.encode(naam) + "&pagination:itemsPerPage=30"
             val lijst = haalArray(url)
             for (i in 0 until minOf(30, lijst.length())) {
                 val kaart = lijst.optJSONObject(i) ?: continue
                 val id = kaart.optString("id")
                 val lokaal = kaart.optString("localId")
                 val set = id.substringBeforeLast("-", "")
-                totaal.add(KaartKandidaat(Kaartspel.POKEMON, kaart.optString("name"), set, lokaal, bron = "TCGdex", bronId = id))
+                totaal.add(KaartKandidaat(Kaartspel.POKEMON, kaart.optString("name"), set, lokaal, taal = taalNaam, bron = "TCGdex", bronId = id))
             }
             if (totaal.isNotEmpty()) break
         }
