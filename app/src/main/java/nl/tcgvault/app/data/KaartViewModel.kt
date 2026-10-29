@@ -15,13 +15,19 @@ class KaartViewModel(application: Application) : AndroidViewModel(application) {
     private val database = KaartDatabase(application)
     private val _kaarten = MutableStateFlow<List<Verzamelkaart>>(emptyList())
     val kaarten = _kaarten.asStateFlow()
+    private val _scans = MutableStateFlow<List<ScanMoment>>(emptyList())
+    val scans = _scans.asStateFlow()
     private val _melding = MutableStateFlow<String?>(null)
     val melding = _melding.asStateFlow()
 
     init { vernieuw() }
 
     fun vernieuw() = viewModelScope.launch {
-        _kaarten.value = withContext(Dispatchers.IO) { database.alleKaarten() }
+        val overzichten = withContext(Dispatchers.IO) {
+            Pair(database.alleKaarten(), database.recenteScans(12))
+        }
+        _kaarten.value = overzichten.first
+        _scans.value = overzichten.second
     }
 
     fun voegToe(kaart: Verzamelkaart, tekst: String? = null) = viewModelScope.launch {
