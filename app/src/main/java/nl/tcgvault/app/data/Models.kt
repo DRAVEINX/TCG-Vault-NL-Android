@@ -31,6 +31,10 @@ data class Verzamelkaart(
     val notitie: String = "",
     val laatstToegevoegd: Long = System.currentTimeMillis(),
     val scanAantal: Int = 0,
+    /** Alleen een HTTPS-afbeelding uit een toegestane catalogus, optioneel. */
+    val afbeeldingUrl: String = "",
+    val catalogusBron: String = "",
+    val catalogusId: String = "",
 )
 
 fun Verzamelkaart.variantSleutel() = listOf(
