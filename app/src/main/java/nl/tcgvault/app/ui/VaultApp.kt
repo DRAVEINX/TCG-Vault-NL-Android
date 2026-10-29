@@ -68,6 +68,7 @@ import nl.tcgvault.app.BuildConfig
 import nl.tcgvault.app.data.*
 import nl.tcgvault.app.scan.KaartTekstParser
 import nl.tcgvault.app.scan.KaartZoeker
+import nl.tcgvault.app.scan.KaartMatchLogica
 import nl.tcgvault.app.scan.KaartKandidaat
 import nl.tcgvault.app.scan.TekstHerkenner
 import java.io.File
@@ -104,6 +105,8 @@ fun VaultApp(vm: KaartViewModel = viewModel()) {
     var fotoUri by remember { mutableStateOf<Uri?>(null) }
     var laatsteFoto by remember { mutableStateOf<Uri?>(null) }
     var zoekNaam by rememberSaveable { mutableStateOf("") }
+    var tekstVoorMatch by remember { mutableStateOf("") }
+    var matchFout by remember { mutableStateOf<String?>(null) }
     var backupOmTeHerstellen by remember { mutableStateOf<Uri?>(null) }
 
     fun verwerkAfbeelding(uri: Uri) {
@@ -114,6 +117,9 @@ fun VaultApp(vm: KaartViewModel = viewModel()) {
             try {
                 val herkend = TekstHerkenner.lees(context, uri)
                 ocrTekst = herkend
+                tekstVoorMatch = herkend
+                zoekNaam = KaartZoeker.naamSuggesties(herkend).firstOrNull().orEmpty()
+                matchFout = null
                 val gevonden = KaartZoeker.zoek(Kaartspel.vanSleutel(spel), herkend)
                 matchOpties = gevonden.kandidaten
                 if (matchOpties.isNotEmpty()) {
@@ -136,12 +142,15 @@ fun VaultApp(vm: KaartViewModel = viewModel()) {
         scope.launch {
             try {
                 val resultaat = KaartZoeker.zoek(Kaartspel.vanSleutel(spel), zoekNaam.trim())
-                matchOpties = resultaat.kandidaten
-                if (matchOpties.isNotEmpty()) {
+                if (resultaat.kandidaten.isNotEmpty()) {
+                    matchOpties = resultaat.kandidaten
+                    tekstVoorMatch = zoekNaam.trim()
+                    matchFout = null
                     ocrTekst = null
                     toonMatches = true
                 } else {
-                    scanFout = resultaat.bericht ?: "Geen kaarten gevonden. Probeer de volledige naam."
+                    matchFout = resultaat.bericht ?: "Geen kaarten gevonden. Probeer een andere naam."
+                    scanFout = matchFout
                 }
             } finally { bezig = false }
         }
@@ -200,7 +209,7 @@ fun VaultApp(vm: KaartViewModel = viewModel()) {
                     Row(Modifier.padding(horizontal = 11.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) {
                         Box(Modifier.size(6.dp).background(Accent, CircleShape))
                         Spacer(Modifier.width(7.dp))
-                        Text("BÈTA 0.5", color = Licht, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        Text("BÈTA 0.6", color = Licht, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -296,6 +305,12 @@ fun VaultApp(vm: KaartViewModel = viewModel()) {
     if (toonMatches) {
         MatchDialoog(
             opties = matchOpties,
+            herkendeTekst = tekstVoorMatch,
+            zoekTekst = zoekNaam,
+            wijzigZoekTekst = { zoekNaam = it },
+            opnieuwZoeken = ::zoekOpNaam,
+            bezig = bezig,
+            fout = matchFout,
             sluiten = { toonMatches = false },
             kies = { match ->
                 gekozenMatch = match
@@ -1190,6 +1205,12 @@ private fun KaartDialoog(
 @Composable
 private fun MatchDialoog(
     opties: List<KaartKandidaat>,
+    herkendeTekst: String,
+    zoekTekst: String,
+    wijzigZoekTekst: (String) -> Unit,
+    opnieuwZoeken: () -> Unit,
+    bezig: Boolean,
+    fout: String?,
     sluiten: () -> Unit,
     kies: (KaartKandidaat) -> Unit,
     handmatig: () -> Unit
@@ -1212,16 +1233,41 @@ private fun MatchDialoog(
                 }
                 Spacer(Modifier.height(12.dp))
                 Text(
-                    "Dit zijn catalogusvoorstellen, geen bevestigde druk of taal. " +
-                        "Controleer de gegevens voordat je opslaat.",
+                    "Gerangschikt op herkende naam en kaartnummer. " +
+                        "Een sterke tekstmatch bewijst nog niet de juiste set, taal of folie-uitvoering.",
                     color = Muted, fontSize = 12.sp, lineHeight = 18.sp
                 )
-                Spacer(Modifier.height(14.dp))
+                Spacer(Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = zoekTekst,
+                    onValueChange = wijzigZoekTekst,
+                    label = { Text("Kaartnaam aanpassen") },
+                    leadingIcon = { Icon(Icons.Default.Search, null) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp)
+                )
+                Spacer(Modifier.height(6.dp))
+                OutlinedButton(
+                    onClick = opnieuwZoeken,
+                    enabled = zoekTekst.isNotBlank() && !bezig,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    if (bezig) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                    else Text("Opnieuw zoeken met deze naam")
+                }
+                if (fout != null) {
+                    Spacer(Modifier.height(6.dp))
+                    Text(fout, color = Goud, fontSize = 11.sp)
+                }
+                Spacer(Modifier.height(8.dp))
                 LazyColumn(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(9.dp)
                 ) {
                     items(opties) { kandidaat ->
+                        val beoordeling = KaartMatchLogica.beoordeel(kandidaat, herkendeTekst)
                         Surface(
                             color = PaneelLicht,
                             shape = RoundedCornerShape(15.dp),
@@ -1237,7 +1283,13 @@ private fun MatchDialoog(
                                         listOf(kandidaat.setNaam, kandidaat.nummer).filter { it.isNotBlank() }.joinToString(" · "),
                                         color = Muted, fontSize = 12.sp, maxLines = 2
                                     )
-                                    Text("Bron: " + kandidaat.bron, color = Accent, fontSize = 10.sp)
+                                    Spacer(Modifier.height(4.dp))
+                                    Text(
+                                        beoordeling.label, color = if (beoordeling.punten >= 140) Accent else Goud,
+                                        fontWeight = FontWeight.Bold, fontSize = 11.sp
+                                    )
+                                    Text(beoordeling.uitleg, color = Muted, fontSize = 10.sp, maxLines = 2)
+                                    Text("Bron: " + kandidaat.bron, color = Muted, fontSize = 10.sp)
                                 }
                                 Icon(Icons.Default.ArrowForward, null, tint = Accent)
                             }
