@@ -16,6 +16,14 @@ android {
         versionName = "0.4.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
+    // De GitHub debug-APK draait naast een eerder geïnstalleerde testapp.
+    // Zo blijft een bestaande lokale collectie op het toestel behouden.
+    buildTypes {
+        getByName("debug") {
+            applicationIdSuffix = ".beta"
+            versionNameSuffix = "-test"
+        }
+    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
