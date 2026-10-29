@@ -72,6 +72,8 @@ import java.io.File
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.text.NumberFormat
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 
 private enum class Pagina(val label: String) { START("Start"), SCAN("Scannen"), COLLECTIE("Collectie"), PORTFOLIO("Portfolio") }
@@ -83,6 +85,7 @@ private fun euro(cent: Long): String = NumberFormat.getCurrencyInstance(Locale.f
 fun VaultApp(vm: KaartViewModel = viewModel()) {
     val context = LocalContext.current
     val kaarten by vm.kaarten.collectAsState()
+    val recenteScans by vm.scans.collectAsState()
     val melding by vm.melding.collectAsState()
     val snackbarHost = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -245,6 +248,7 @@ fun VaultApp(vm: KaartViewModel = viewModel()) {
                 Pagina.COLLECTIE -> CollectiePagina(kaarten, vm::wijzigAantal)
                 Pagina.PORTFOLIO -> PortfolioPagina(
                     kaarten = kaarten,
+                    recenteScans = recenteScans,
                     delen = {
                         val overzicht = maakPortfolioTekst(kaarten)
                         val intent = Intent(Intent.ACTION_SEND).apply {
@@ -730,6 +734,7 @@ private fun KaartRij(kaart: Verzamelkaart, wijzigAantal: (Long, Int) -> Unit, be
 @Composable
 private fun PortfolioPagina(
     kaarten: List<Verzamelkaart>,
+    recenteScans: List<ScanMoment>,
     delen: () -> Unit,
     backupMaken: () -> Unit,
     backupHerstellen: () -> Unit
@@ -841,6 +846,51 @@ private fun PortfolioPagina(
                             "Kaartafbeeldingen worden opnieuw online geladen.",
                         color = Goud, fontSize = 11.sp
                     )
+                }
+            }
+        }
+        if (recenteScans.isNotEmpty()) {
+            item {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.CameraAlt, null, tint = Accent, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Column {
+                        Text("Recent gescand", color = Licht, fontSize = 19.sp, fontWeight = FontWeight.Bold)
+                        Text("Je laatste " + recenteScans.size + " scanmomenten", color = Muted, fontSize = 12.sp)
+                    }
+                }
+            }
+            items(recenteScans) { scan ->
+                Surface(
+                    color = Paneel, shape = RoundedCornerShape(15.dp),
+                    border = BorderStroke(1.dp, Lijn)
+                ) {
+                    Row(
+                        Modifier.fillMaxWidth().padding(13.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            Modifier.size(39.dp).background(
+                                spelKleur(scan.spel).copy(alpha = .13f),
+                                RoundedCornerShape(11.dp)
+                            ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Default.CheckCircle, null, tint = spelKleur(scan.spel),
+                                modifier = Modifier.size(20.dp))
+                        }
+                        Spacer(Modifier.width(11.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(scan.kaartNaam, color = Licht, fontWeight = FontWeight.SemiBold,
+                                maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(scan.spel.titel, color = Muted, fontSize = 11.sp)
+                        }
+                        Text(
+                            SimpleDateFormat("dd-MM-yyyy HH:mm", Locale("nl", "NL"))
+                                .format(Date(scan.gescandOp)),
+                            color = Muted, fontSize = 10.sp
+                        )
+                    }
                 }
             }
         }
