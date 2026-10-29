@@ -1,6 +1,8 @@
 package nl.tcgvault.app.data
 
 import android.app.Application
+import android.net.Uri
+import java.io.ByteArrayOutputStream
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
@@ -35,6 +37,53 @@ class KaartViewModel(application: Application) : AndroidViewModel(application) {
             withContext(Dispatchers.IO) { database.pasAantalAan(id, aantal) }
             vernieuw()
         } catch (e: Exception) { _melding.value = "Wijzigen mislukt" }
+    }
+
+    fun exporteerBackup(uri: Uri) = viewModelScope.launch {
+        try {
+            val aantal = withContext(Dispatchers.IO) {
+                val json = database.maakBackup()
+                val stream = getApplication<Application>().contentResolver.openOutputStream(uri, "w")
+                    ?: error("Het gekozen bestand kan niet worden geopend.")
+                stream.bufferedWriter(Charsets.UTF_8).use { it.write(json) }
+                database.alleKaarten().sumOf { it.aantal }
+            }
+            _melding.value = "Back-up opgeslagen: " + aantal + " kaarten."
+        } catch (e: Exception) {
+            _melding.value = "Back-up maken mislukt: " + (e.localizedMessage ?: "onbekende fout")
+        }
+    }
+
+    /** Importeert alleen gevalideerde JSON. Alle kaarten en OCR-scans worden vervangen. */
+    fun importeerBackup(uri: Uri) = viewModelScope.launch {
+        try {
+            val hersteld = withContext(Dispatchers.IO) {
+                val input = getApplication<Application>().contentResolver.openInputStream(uri)
+                    ?: error("Het gekozen bestand kan niet worden gelezen.")
+                val bytes = ByteArrayOutputStream()
+                input.use { stream ->
+                    val buffer = ByteArray(8192)
+                    var totaal = 0
+                    while (true) {
+                        val gelezen = stream.read(buffer)
+                        if (gelezen < 0) break
+                        totaal += gelezen
+                        require(totaal <= CollectieBackup.MAX_BESTAND_TEKENS) {
+                            "Het bestand is te groot (maximaal 16 MB)."
+                        }
+                        bytes.write(buffer, 0, gelezen)
+                    }
+                }
+                val inhoud = CollectieBackup.lees(bytes.toString("UTF-8"))
+                database.herstelBackup(inhoud)
+                inhoud.kaarten.sumOf { it.aantal }
+            }
+            vernieuw()
+            _melding.value = hersteld.toString() + " kaarten en hun scanhistorie teruggezet."
+        } catch (e: Exception) {
+            _melding.value = "Back-up herstellen mislukt. Je bestaande collectie is behouden. " +
+                (e.localizedMessage ?: "Controleer het back-upbestand.")
+        }
     }
 
     fun wisMelding() { _melding.value = null }
