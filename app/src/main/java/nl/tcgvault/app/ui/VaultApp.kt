@@ -151,7 +151,7 @@ fun VaultApp(vm: KaartViewModel = viewModel()) {
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
                     Text("TCG VAULT", color = Licht, fontSize = 19.sp, fontWeight = FontWeight.Black, letterSpacing = 1.4.sp)
-                    Text("COLLECTOR EDITION", color = Muted, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.6.sp)
+                    Text("VERZAMELAARSVERSIE", color = Muted, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.6.sp)
                 }
                 Surface(color = PaneelLicht, shape = RoundedCornerShape(50), border = BorderStroke(1.dp, Lijn)) {
                     Row(Modifier.padding(horizontal = 11.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -259,7 +259,7 @@ private fun StartPagina(kaarten: List<Verzamelkaart>, naarScanner: () -> Unit, n
     ) {
         item {
             Column {
-                Text("JOUW COLLECTOR DASHBOARD", color = Accent, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
+                Text("JOUW VERZAMELOVERZICHT", color = Accent, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
                 Spacer(Modifier.height(6.dp))
                 Text("Welkom in je vault.", color = Licht, fontSize = 29.sp, fontWeight = FontWeight.Black, letterSpacing = (-.7).sp)
                 Text("Jouw wereld van trading cards, overzichtelijk bewaard.", color = Muted, fontSize = 13.sp)
@@ -398,7 +398,7 @@ private fun ScannerPagina(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(Modifier.height(14.dp))
-        Text("SCAN STUDIO", color = Accent, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.1.sp)
+        Text("SCANSTUDIO", color = Accent, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.1.sp)
         Spacer(Modifier.height(7.dp))
         Text("Herken je kaarten", color = Licht, fontSize = 28.sp, fontWeight = FontWeight.Black)
         Spacer(Modifier.height(4.dp))
@@ -428,7 +428,7 @@ private fun ScannerPagina(
                 shape = RoundedCornerShape(50),
                 modifier = Modifier.align(Alignment.TopStart).padding(16.dp)
             ) {
-                Text("AUTO MATCH", color = Accent, fontSize = 10.sp, fontWeight = FontWeight.Bold,
+                Text("SLIMME MATCH", color = Accent, fontSize = 10.sp, fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp))
             }
             Text("OCR + online catalogus", color = Muted, fontSize = 10.sp,
@@ -606,7 +606,7 @@ private fun PortfolioPagina(kaarten: List<Verzamelkaart>, delen: () -> Unit) {
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {
-            Text("JOUW SHOWCASE", color = Accent, fontSize = 10.sp, letterSpacing = 2.sp, fontWeight = FontWeight.Bold)
+            Text("JOUW PORTFOLIO", color = Accent, fontSize = 10.sp, letterSpacing = 2.sp, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(5.dp))
             Text("Mijn portfolio", color = Licht, fontSize = 29.sp, fontWeight = FontWeight.Black)
             Text("Een overzicht om trots op te zijn.", color = Muted, fontSize = 13.sp)
@@ -631,7 +631,7 @@ private fun PortfolioPagina(kaarten: List<Verzamelkaart>, delen: () -> Unit) {
                     }
                     Spacer(Modifier.height(11.dp))
                     Text("MIJN TCG VAULT", color = Licht, fontSize = 20.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
-                    Text("COLLECTOR PROFILE", color = Accent, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp)
+                    Text("VERZAMELAARSPROFIEL", color = Accent, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp)
                     Spacer(Modifier.height(17.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(21.dp)) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
