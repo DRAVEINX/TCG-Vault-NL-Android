@@ -1,6 +1,23 @@
-# TCG Vault NL — Android-app (bèta 0.3)
+# TCG Vault NL — Android-app (bèta 0.4)
 
 Een Nederlandstalige **native Android-app** voor Pokémon, Magic: The Gathering, One Piece, Yu-Gi-Oh! en Riftbound. Gebouwd met Kotlin, Jetpack Compose, Google ML Kit en SQLite.
+
+## Nieuw in 0.4
+
+- **Back-up maken:** op het tabblad **Portfolio → Back-up en herstel** kun je je volledige collectie als een leesbaar JSON-bestand opslaan. Je kiest zelf waar, bijvoorbeeld Downloads, Google Drive of een andere opslaglocatie die Android aanbiedt.
+- **Back-up herstellen:** selecteer een eerdere `TCG-Vault-NL-backup.json`, bevestig expliciet dat de huidige collectie vervangen wordt en herstel kaarten, aantallen, eigen prijzen, talen, uitvoeringen, afbeelding-URL's en opgeslagen scanmomenten.
+- **Gegevensbeveiliging:** eerst wordt het complete bestand gecontroleerd, daarna worden wijzigingen binnen één SQLite-transactie uitgevoerd. Bij een onjuist/ongeldig bestand blijven de huidige kaarten behouden. Back-upbestanden mogen maximaal 16 MB groot zijn.
+- **Collectie sorteren:** recent toegevoegd, naam A–Z, meeste exemplaren, meeste dubbelen en hoogste **eigen opgegeven waarde**. De app toont het aantal gefilterde kaarten.
+
+### Zo maak je veilig een back-up
+
+1. Open **Portfolio → Back-up en herstel → Back-up maken**.
+2. Kies een locatie buiten de app (bijvoorbeeld een cloudopslag of de map Downloads) en bewaar het JSON-bestand.
+3. Controleer dat het bestand op de gekozen locatie bestaat. Bewaar bij voorkeur een extra kopie.
+4. Op een ander Android-toestel: installeer TCG Vault NL, kies **Back-up herstellen** en selecteer het bestand.
+5. Lees de waarschuwing: **herstellen VERVANGT alle kaarten en scanmomenten op dat toestel**. Sla eerst eventuele nieuw toegevoegde kaarten op in een aparte back-up.
+
+De back-up bevat persoonsgegevens die je zelf in notities of OCR-scans hebt opgeslagen. Deel het bestand alleen met mensen die je vertrouwt. Hij bevat geen camerafoto's of de oorspronkelijke afbeeldingsbestanden; catalogusafbeeldingen worden opnieuw online geladen. Er is geen automatische cloud-back-up of synchronisatie.
 
 ## Nieuw in 0.3
 
@@ -63,10 +80,10 @@ De `gradle-wrapper.jar` ontbreekt nog; gebruik lokaal Gradle 8.11.1 of genereer 
 
 - OCR vindt plaats **op het toestel** met ML Kit. De app uploadt de scanfoto niet naar onze eigen server.
 - **Zoekwoorden uit de herkende kaarttekst** worden via HTTPS naar de catalogusdienst van het gekozen spel gestuurd. Die externe dienst kan de zoekopdracht en verbindingsgegevens zien. Gebruik handmatige invoer als je dat niet wilt.
-- De collectie blijft lokaal in SQLite. Er is geen account, advertentietracking of synchronisatie.
+- De collectie blijft lokaal in SQLite. Er is geen account, advertentietracking of synchronisatie. Een gebruiker kan vanaf versie 0.4 zelf een JSON-back-up exporteren/importeren via de Android-bestandskiezer.
 - Kaartafbeeldingen worden op aanvraag geladen vanaf de genoemde catalogus-/afbeeldingsservers; die diensten kunnen je IP-adres en afbeeldingsaanvragen zien. Afbeeldingen worden door Coil op het toestel gecachet. De app uploadt niet je volledige scannerfoto.
 - Je eigen prijzen zijn niet automatisch opgehaald en dus geen geverifieerde marktprijzen.
-- Bij verwijdering van de app kun je de collectie verliezen; export/import bestaat nog niet.
+- Bij verwijdering van de app kun je de collectie verliezen; export/import is vanaf versie 0.4 beschikbaar.
 
 ## Catalogusbronnen
 
@@ -84,4 +101,4 @@ API-afhankelijkheden kunnen tijdelijk niet werken of wijzigen. Diensten hebben h
 - `app/src/main/java/nl/tcgvault/app/ui/VaultThema.kt` — premium donker thema.
 - `app/src/main/java/nl/tcgvault/app/scan/TekstHerkenner.kt` — ML Kit OCR.
 - `app/src/main/java/nl/tcgvault/app/scan/KaartZoeker.kt` — externe catalogusmatching met nummervergelijking en kaartafbeeldingen.
-- `app/src/main/java/nl/tcgvault/app/data/` — lokale database, collectie en waardefuncties.
+- `app/src/main/java/nl/tcgvault/app/data/` — lokale database, collectie, waardefuncties en de nieuwe JSON-back-upcodec.
