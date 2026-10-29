@@ -146,9 +146,10 @@ fun VaultApp(vm: KaartViewModel = viewModel()) {
                     matchOpties = resultaat.kandidaten
                     tekstVoorMatch = zoekNaam.trim()
                     matchFout = null
-                    ocrTekst = null
+                    if (!toonMatches) ocrTekst = null
                     toonMatches = true
                 } else {
+                    matchOpties = emptyList()
                     matchFout = resultaat.bericht ?: "Geen kaarten gevonden. Probeer een andere naam."
                     scanFout = matchFout
                 }
@@ -305,9 +306,10 @@ fun VaultApp(vm: KaartViewModel = viewModel()) {
     if (toonMatches) {
         MatchDialoog(
             opties = matchOpties,
+            eigenKaarten = kaarten,
             herkendeTekst = tekstVoorMatch,
             zoekTekst = zoekNaam,
-            wijzigZoekTekst = { zoekNaam = it },
+            wijzigZoekTekst = { zoekNaam = it.take(60) },
             opnieuwZoeken = ::zoekOpNaam,
             bezig = bezig,
             fout = matchFout,
@@ -1205,6 +1207,7 @@ private fun KaartDialoog(
 @Composable
 private fun MatchDialoog(
     opties: List<KaartKandidaat>,
+    eigenKaarten: List<Verzamelkaart>,
     herkendeTekst: String,
     zoekTekst: String,
     wijzigZoekTekst: (String) -> Unit,
@@ -1268,6 +1271,13 @@ private fun MatchDialoog(
                 ) {
                     items(opties) { kandidaat ->
                         val beoordeling = KaartMatchLogica.beoordeel(kandidaat, herkendeTekst)
+                        val reedsInCollectie = eigenKaarten.filter {
+                            it.spel == kandidaat.spel &&
+                                it.naam.equals(kandidaat.naam, ignoreCase = true) &&
+                                it.setNaam.equals(kandidaat.setNaam, ignoreCase = true) &&
+                                it.kaartnummer.equals(kandidaat.nummer, ignoreCase = true) &&
+                                it.taal == kandidaat.taal
+                        }.sumOf { it.aantal }
                         Surface(
                             color = PaneelLicht,
                             shape = RoundedCornerShape(15.dp),
@@ -1289,6 +1299,13 @@ private fun MatchDialoog(
                                         fontWeight = FontWeight.Bold, fontSize = 11.sp
                                     )
                                     Text(beoordeling.uitleg, color = Muted, fontSize = 10.sp, maxLines = 2)
+                                    if (reedsInCollectie > 0) {
+                                        Text(
+                                            "Al in je collectie: " + reedsInCollectie +
+                                                " · controleer conditie en uitvoering",
+                                            color = Goud, fontSize = 10.sp, maxLines = 2
+                                        )
+                                    }
                                     Text("Bron: " + kandidaat.bron, color = Muted, fontSize = 10.sp)
                                 }
                                 Icon(Icons.Default.ArrowForward, null, tint = Accent)
