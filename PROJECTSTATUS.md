@@ -1,6 +1,14 @@
 # TCG Vault NL — projectstatus
 
-**Native Android bèta 0.5.0 — 29 oktober 2026**
+**Native Android bèta 0.6.0 — 29 oktober 2026**
+
+## Nieuw in 0.6
+- Transparante matchscore uit OCR-naam, nummerfractie en volledige kaartcodes met kwalitatieve tekstlabels. Geen foutieve claim van officiële herkenningszekerheid.
+- Pokémon: meerdere cataloguspagina's bij een leesbaar kaartnummer; Magic: meer fysieke drukken; Yu-Gi-Oh!: meer setvarianten; One Piece: zoekroute op volledige code.
+- In matchvenster kan de gebruiker een verkeerd OCR-gelezen kaartnaam direct verbeteren en de zoekopdracht herhalen.
+- Extra JVM-unit-tests van One Piece- en Yu-Gi-Oh!-setcodes, Pokémon-kaartnummers, internationale Unicode-schrijfwijzen en Japanse namen.
+- Bestaande collecties, back-upformaat en databaseversie zijn ongewijzigd. De debug-bèta blijft een apart pakket `nl.tcgvault.app.beta`.
+- Belangrijk: OCR-tekstmatch is geen visuele artwork-match. Exacte editie, set, taal en foil moeten nog bevestigd worden.
 
 ## Nieuw in 0.5
 - Kaartdetailvenster heeft de actie **Bewerken**: corrigeer naam, set, kaartnummer, taal, conditie, uitvoering, aantal, eigen prijs en notitie.
