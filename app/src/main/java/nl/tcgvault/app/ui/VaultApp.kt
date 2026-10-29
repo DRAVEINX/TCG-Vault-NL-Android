@@ -45,6 +45,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.SubcomposeAsyncImage
+import coil.compose.SubcomposeAsyncImageContent
+import coil.compose.AsyncImagePainter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -157,7 +161,7 @@ fun VaultApp(vm: KaartViewModel = viewModel()) {
                     Row(Modifier.padding(horizontal = 11.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) {
                         Box(Modifier.size(6.dp).background(Accent, CircleShape))
                         Spacer(Modifier.width(7.dp))
-                        Text("BÈTA 0.2", color = Licht, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        Text("BÈTA 0.3", color = Licht, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -541,18 +545,7 @@ private fun KaartRij(kaart: Verzamelkaart, wijzigAantal: (Long, Int) -> Unit) {
         border = BorderStroke(1.dp, Lijn)
     ) {
         Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                Modifier.size(width = 63.dp, height = 88.dp)
-                    .background(Brush.linearGradient(listOf(kleur.copy(alpha = .3f), Color(0xFF111A2A))), RoundedCornerShape(11.dp))
-                    .border(1.dp, kleur.copy(alpha = .45f), RoundedCornerShape(11.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.Style, null, tint = kleur, modifier = Modifier.size(32.dp))
-                    Spacer(Modifier.height(6.dp))
-                    Text(kaart.spel.name.take(3), color = kleur, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
-                }
-            }
+            KaartIllustratie(kaart.afbeeldingUrl, kaart.spel, Modifier.size(width = 63.dp, height = 88.dp))
             Spacer(Modifier.width(13.dp))
             Column(Modifier.weight(1f)) {
                 Text(kaart.naam, color = Licht, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -764,7 +757,17 @@ private fun KaartDialoog(
             Column {
                 Column(Modifier.fillMaxWidth().weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(19.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(if (suggestie != null) "Kaartmatch controleren" else if (herkendeTekst != null) "Scan controleren" else "Kaart toevoegen", color = Licht, fontSize = 21.sp, fontWeight = FontWeight.Black)
-                    if (suggestie != null) Text("Voorstel via " + suggestie.bron + " • controleer set, taal en uitvoering.", color = Accent, fontSize = 12.sp)
+                    if (suggestie != null) {
+                        Text("Voorstel via " + suggestie.bron + " • controleer set, taal en uitvoering.", color = Accent, fontSize = 12.sp)
+                        if (suggestie.afbeeldingUrl.isNotBlank()) {
+                            Box(Modifier.fillMaxWidth().padding(vertical = 7.dp), contentAlignment = Alignment.Center) {
+                                KaartIllustratie(
+                                    suggestie.afbeeldingUrl, suggestie.spel,
+                                    Modifier.size(width = 125.dp, height = 173.dp)
+                                )
+                            }
+                        }
+                    }
                     Text("Controleer alle gegevens. Dezelfde variant wordt als dubbel opgeteld.", color = Muted, fontSize = 12.sp)
                     if (herkendeTekst != null) {
                         Surface(color = Achtergrond, shape = RoundedCornerShape(12.dp)) {
@@ -812,7 +815,10 @@ private fun KaartDialoog(
                             spel = gekozenSpel, naam = naam.trim(), setNaam = setNaam.trim(),
                             kaartnummer = nummer.trim(), taal = gekozenTaal,
                             uitvoering = uitvoering, conditie = conditie, aantal = aantal!!,
-                            eigenPrijsCent = cent, notitie = notitie.trim()
+                            eigenPrijsCent = cent, notitie = notitie.trim(),
+                            afbeeldingUrl = if (gekozenSpel == suggestie?.spel) suggestie.afbeeldingUrl else "",
+                            catalogusBron = if (gekozenSpel == suggestie?.spel) suggestie.bron else "",
+                            catalogusId = if (gekozenSpel == suggestie?.spel) suggestie.bronId else ""
                         ))
                     }, modifier = Modifier.weight(1.2f)) {
                         Icon(Icons.Default.CheckCircle, null, modifier = Modifier.size(17.dp))
@@ -867,16 +873,7 @@ private fun MatchDialoog(
                             modifier = Modifier.fillMaxWidth().clickable { kies(kandidaat) }
                         ) {
                             Row(Modifier.padding(13.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Box(
-                                    Modifier.size(width = 49.dp, height = 66.dp)
-                                        .background(
-                                            Brush.linearGradient(listOf(spelKleur(kandidaat.spel).copy(alpha = .32f), Achtergrond)),
-                                            RoundedCornerShape(8.dp)
-                                        ).border(1.dp, spelKleur(kandidaat.spel).copy(alpha = .45f), RoundedCornerShape(8.dp)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(Icons.Default.Style, null, tint = spelKleur(kandidaat.spel))
-                                }
+                                KaartIllustratie(kandidaat.afbeeldingUrl, kandidaat.spel, Modifier.size(width = 49.dp, height = 66.dp))
                                 Spacer(Modifier.width(12.dp))
                                 Column(Modifier.weight(1f)) {
                                     Text(kandidaat.naam, color = Licht, fontWeight = FontWeight.Bold, maxLines = 2)
@@ -907,4 +904,40 @@ private fun spelKleur(spel: Kaartspel): Color = when (spel) {
     Kaartspel.ONE_PIECE -> Color(0xFFFF8191)
     Kaartspel.YUGIOH -> Color(0xFF77A7FF)
     Kaartspel.RIFTBOUND -> Color(0xFF5AE4D0)
+}
+
+/**
+ * Catalogusafbeeldingen worden op het toestel gecachet door Coil. Als een provider
+ * geen afbeelding heeft of extern laden blokkeert, blijft de stijlvolle placeholder.
+ */
+@Composable
+private fun KaartIllustratie(url: String, spel: Kaartspel, modifier: Modifier = Modifier) {
+    val kleur = spelKleur(spel)
+    val veiligeUrl = url.takeIf {
+        it.startsWith("https://assets.tcgdex.net/") ||
+            it.startsWith("https://cards.scryfall.io/") ||
+            (spel == Kaartspel.ONE_PIECE && it.startsWith("https://"))
+    }
+    Box(
+        modifier.clip(RoundedCornerShape(9.dp))
+            .background(Brush.linearGradient(listOf(kleur.copy(alpha = .3f), Color(0xFF111A2A))))
+            .border(1.dp, kleur.copy(alpha = .4f), RoundedCornerShape(9.dp)),
+        contentAlignment = Alignment.Center
+    ) {
+        if (veiligeUrl != null) {
+            SubcomposeAsyncImage(
+                model = veiligeUrl,
+                contentDescription = "Catalogusafbeelding " + spel.titel,
+                modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(9.dp)),
+                contentScale = ContentScale.Fit
+            ) {
+                when (painter.state) {
+                    is AsyncImagePainter.State.Success -> SubcomposeAsyncImageContent()
+                    else -> Icon(Icons.Default.Style, null, tint = kleur, modifier = Modifier.size(28.dp))
+                }
+            }
+        } else {
+            Icon(Icons.Default.Style, null, tint = kleur, modifier = Modifier.size(28.dp))
+        }
+    }
 }
