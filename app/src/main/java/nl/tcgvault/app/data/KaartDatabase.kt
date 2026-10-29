@@ -93,6 +93,31 @@ class KaartDatabase(context: Context) : SQLiteOpenHelper(context, "tcg_vault.db"
         }
     }
 
+    fun recenteScans(limiet: Int = 10): List<ScanMoment> {
+        val lijst = mutableListOf<ScanMoment>()
+        readableDatabase.rawQuery(
+            """
+                SELECT s.kaart_id, k.naam, k.spel, s.gescand_op
+                FROM scans s JOIN kaarten k ON k.id = s.kaart_id
+                ORDER BY s.gescand_op DESC, s.id DESC
+                LIMIT ?
+            """.trimIndent(),
+            arrayOf(limiet.coerceIn(1, 100).toString())
+        ).use { cursor ->
+            while (cursor.moveToNext()) {
+                lijst.add(
+                    ScanMoment(
+                        kaartId = cursor.getLong(0),
+                        kaartNaam = cursor.getString(1),
+                        spel = Kaartspel.vanSleutel(cursor.getString(2)),
+                        gescandOp = cursor.getLong(3)
+                    )
+                )
+            }
+        }
+        return lijst
+    }
+
     /** Neem alle scanmomenten mee bij het maken van een back-up. */
     fun alleScans(): List<BackupScan> {
         val lijst = mutableListOf<BackupScan>()
