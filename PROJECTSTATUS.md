@@ -1,6 +1,14 @@
 # TCG Vault NL — projectstatus
 
-**Native Android bèta 0.4.0 — 29 oktober 2026**
+**Native Android bèta 0.5.0 — 29 oktober 2026**
+
+## Nieuw in 0.5
+- Kaartdetailvenster heeft de actie **Bewerken**: corrigeer naam, set, kaartnummer, taal, conditie, uitvoering, aantal, eigen prijs en notitie.
+- Bij een correctie naar een al bestaande variant combineert een SQLite-transactie de aantallen en verplaatst de scanmomenten zonder dubbel verlies. Notities worden bewaard.
+- Scanmomenten zijn doorzoekbaar in een apart scherm met spel-, naam- en OCR-tekstfilter; de UI beperkt de lijst tot de recentste 500 voor prestaties. Back-up bevat de volledige historie.
+- De laatste kaart kan niet meer door een losse tik op de minknop verdwijnen. Verwijderen vereist een aparte bevestiging in het detailvenster.
+- Extra JVM-tests voor het pure samenvoegmodel: aantallen, notities, grenswaarden, prijs en afwijkende varianten.
+- **Geen database- of JSON-back-upformaatwijziging** ten opzichte van 0.4. Bestaande collecties en eerdere 0.4-back-ups blijven bruikbaar.
 
 ## Nieuw in 0.4
 - Leesbare, draagbare JSON-back-ups voor alle kaarten, aantallen, varianten, talen, conditie, eigen prijzen, catalogusverwijzingen, notities en volledige OCR-scanmomenten.
