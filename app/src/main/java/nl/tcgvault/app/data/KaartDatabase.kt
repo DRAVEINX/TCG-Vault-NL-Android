@@ -93,6 +93,59 @@ class KaartDatabase(context: Context) : SQLiteOpenHelper(context, "tcg_vault.db"
         }
     }
 
+    /** Neem alle scanmomenten mee bij het maken van een back-up. */
+    fun alleScans(): List<BackupScan> {
+        val lijst = mutableListOf<BackupScan>()
+        readableDatabase.rawQuery(
+            "SELECT kaart_id, gescand_op, herkende_tekst FROM scans ORDER BY id ASC", null
+        ).use { cursor ->
+            while (cursor.moveToNext()) {
+                lijst.add(
+                    BackupScan(
+                        kaartId = cursor.getLong(0),
+                        gescandOp = cursor.getLong(1),
+                        herkendeTekst = cursor.getString(2)
+                    )
+                )
+            }
+        }
+        return lijst
+    }
+
+    fun maakBackup(): String = CollectieBackup.schrijf(alleKaarten(), alleScans())
+
+    /**
+     * Alleen aanroepen na CollectieBackup.lees(). Alles of niets: bij een fout
+     * wordt de oude database door SQLite automatisch teruggezet.
+     */
+    fun herstelBackup(backup: BackupInhoud) {
+        val db = writableDatabase
+        db.beginTransaction()
+        try {
+            db.delete("scans", null, null)
+            db.delete("kaarten", null, null)
+            val ids = mutableMapOf<Long, Long>()
+            for (kaart in backup.kaarten) {
+                val values = kaart.naarValues()
+                values.put("toegevoegd_op", kaart.laatstToegevoegd)
+                val nieuwId = db.insertOrThrow("kaarten", null, values)
+                check(nieuwId > 0) { "Herstellen van een kaart mislukt." }
+                ids[kaart.id] = nieuwId
+            }
+            for (scan in backup.scans) {
+                val values = ContentValues().apply {
+                    put("kaart_id", ids[scan.kaartId] ?: error("Ongeldige scanverwijzing."))
+                    put("gescand_op", scan.gescandOp)
+                    put("herkende_tekst", scan.herkendeTekst)
+                }
+                db.insertOrThrow("scans", null, values)
+            }
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
+    }
+
     fun pasAantalAan(id: Long, nieuwAantal: Int) {
         if (nieuwAantal <= 0) {
             verwijder(id)
