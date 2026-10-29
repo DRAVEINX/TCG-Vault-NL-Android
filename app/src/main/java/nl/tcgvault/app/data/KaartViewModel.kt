@@ -17,6 +17,8 @@ class KaartViewModel(application: Application) : AndroidViewModel(application) {
     val kaarten = _kaarten.asStateFlow()
     private val _scans = MutableStateFlow<List<ScanMoment>>(emptyList())
     val scans = _scans.asStateFlow()
+    private val _historie = MutableStateFlow<List<ScanMoment>>(emptyList())
+    val historie = _historie.asStateFlow()
     private val _melding = MutableStateFlow<String?>(null)
     val melding = _melding.asStateFlow()
 
@@ -24,10 +26,11 @@ class KaartViewModel(application: Application) : AndroidViewModel(application) {
 
     fun vernieuw() = viewModelScope.launch {
         val overzichten = withContext(Dispatchers.IO) {
-            Pair(database.alleKaarten(), database.recenteScans(12))
+            Triple(database.alleKaarten(), database.recenteScans(12), database.recenteScans(500))
         }
         _kaarten.value = overzichten.first
         _scans.value = overzichten.second
+        _historie.value = overzichten.third
     }
 
     fun voegToe(kaart: Verzamelkaart, tekst: String? = null) = viewModelScope.launch {
@@ -36,6 +39,20 @@ class KaartViewModel(application: Application) : AndroidViewModel(application) {
             vernieuw()
             _melding.value = "Kaart toegevoegd aan je collectie"
         } catch (e: Exception) { _melding.value = "Opslaan mislukt: ${e.localizedMessage ?: "onbekende fout"}" }
+    }
+
+    fun werkKaartBij(kaart: Verzamelkaart) = viewModelScope.launch {
+        try {
+            val samengevoegd = withContext(Dispatchers.IO) { database.bewerkKaart(kaart) }
+            vernieuw()
+            _melding.value = if (samengevoegd) {
+                "Kaart bijgewerkt. Identieke varianten en hun scanmomenten samengevoegd."
+            } else {
+                "Kaartgegevens bijgewerkt."
+            }
+        } catch (e: Exception) {
+            _melding.value = "Bewerken mislukt: " + (e.localizedMessage ?: "Onbekende fout")
+        }
     }
 
     fun wijzigAantal(id: Long, aantal: Int) = viewModelScope.launch {
