@@ -92,26 +92,42 @@ object KaartZoeker {
     }
 
     private fun pokemon(namen: List<String>, ocr: String): List<KaartKandidaat> {
-        val bekendNummer = nummer.find(ocr)?.value?.substringBefore("/")?.trimStart('0')
         val (taalCode, taalNaam) = catalogusTaal(ocr)
+        val gezochtNummer = KaartMatchLogica.gevondenNummer(ocr)
         val totaal = mutableListOf<KaartKandidaat>()
+        // Met een leesbaar nummer doorzoeken we meer dan de eerste pagina.
         for (naam in namen.take(3)) {
-            val url = "https://api.tcgdex.net/v2/" + taalCode + "/cards?name=" + Uri.encode(naam) + "&pagination:itemsPerPage=30"
-            val lijst = haalArray(url)
-            for (i in 0 until minOf(30, lijst.length())) {
-                val kaart = lijst.optJSONObject(i) ?: continue
-                val id = kaart.optString("id")
-                val lokaal = kaart.optString("localId")
-                val set = id.substringBeforeLast("-", "")
-                val basis = kaart.optString("image")
-                val afbeelding = if (basis.startsWith("https://assets.tcgdex.net/")) "$basis/low.webp" else ""
-                totaal.add(KaartKandidaat(Kaartspel.POKEMON, kaart.optString("name"), set, lokaal, taal = taalNaam, bron = "TCGdex", bronId = id, afbeeldingUrl = afbeelding))
+            val lijstNaam = mutableListOf<KaartKandidaat>()
+            for (pagina in 1..(if (gezochtNummer != null) 3 else 1)) {
+                val url = "https://api.tcgdex.net/v2/" + taalCode + "/cards?name=" +
+                    Uri.encode(naam) + "&pagination:page=" + pagina + "&pagination:itemsPerPage=30"
+                val lijst = haalArray(url)
+                for (i in 0 until minOf(30, lijst.length())) {
+                    val kaart = lijst.optJSONObject(i) ?: continue
+                    val id = kaart.optString("id")
+                    val naamKaart = kaart.optString("name")
+                    if (id.isBlank() || naamKaart.isBlank()) continue
+                    val lokaal = kaart.optString("localId")
+                    val set = id.substringBeforeLast("-", "")
+                    val basis = kaart.optString("image")
+                    val afbeelding = if (basis.startsWith("https://assets.tcgdex.net/")) "$basis/low.webp" else ""
+                    lijstNaam.add(
+                        KaartKandidaat(
+                            Kaartspel.POKEMON, naamKaart, set, lokaal,
+                            taal = taalNaam, bron = "TCGdex", bronId = id,
+                            afbeeldingUrl = afbeelding
+                        )
+                    )
+                }
+                if (lijst.length() < 30 || lijstNaam.any {
+                    KaartMatchLogica.beoordeel(it, ocr).punten >= 145
+                }) break
             }
-            if (totaal.isNotEmpty()) break
+            totaal.addAll(lijstNaam)
+            if (totaal.any { KaartMatchLogica.beoordeel(it, ocr).punten >= 145 }) break
+            if (totaal.isNotEmpty() && gezochtNummer == null) break
         }
-        return totaal.sortedWith(compareByDescending<KaartKandidaat> {
-            bekendNummer != null && it.nummer.trimStart('0') == bekendNummer
-        }.thenBy { it.naam.length })
+        return totaal
     }
 
     private fun magic(namen: List<String>): List<KaartKandidaat> {
