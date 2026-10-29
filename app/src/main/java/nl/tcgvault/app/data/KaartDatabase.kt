@@ -214,11 +214,12 @@ class KaartDatabase(context: Context) : SQLiteOpenHelper(context, "tcg_vault.db"
     }
 
     fun pasAantalAan(id: Long, nieuwAantal: Int) {
-        if (nieuwAantal <= 0) {
-            verwijder(id)
-        } else {
-            val values = ContentValues().apply { put("aantal", nieuwAantal) }
-            writableDatabase.update("kaarten", values, "id = ?", arrayOf(id.toString()))
+        // Een verkeerd tikje op min mag nooit de laatste kaart plus zijn scans wissen.
+        require(nieuwAantal >= 1) { "Gebruik Verwijderen om een kaart volledig te wissen." }
+        require(nieuwAantal <= 100_000) { "Het aantal mag maximaal 100.000 zijn." }
+        val values = ContentValues().apply { put("aantal", nieuwAantal) }
+        check(writableDatabase.update("kaarten", values, "id = ?", arrayOf(id.toString())) == 1) {
+            "Kaart niet gevonden."
         }
     }
 
