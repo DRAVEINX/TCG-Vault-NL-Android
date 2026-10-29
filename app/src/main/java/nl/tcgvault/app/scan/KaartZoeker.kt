@@ -67,8 +67,14 @@ object KaartZoeker {
 
     suspend fun zoek(spel: Kaartspel, ocr: String): ZoekUitkomst = withContext(Dispatchers.IO) {
         val namen = naamSuggesties(ocr)
-        if (namen.isEmpty() && spel != Kaartspel.YUGIOH) {
-            return@withContext ZoekUitkomst(emptyList(), "Geen bruikbare kaartnaam gevonden. Controleer de foto of voer de kaart handmatig in.")
+        val gevondenCode = KaartMatchLogica.gevondenKaartcode(ocr, spel)
+        if (namen.isEmpty() && spel != Kaartspel.YUGIOH &&
+            !(spel == Kaartspel.ONE_PIECE && gevondenCode != null)
+        ) {
+            return@withContext ZoekUitkomst(
+                emptyList(),
+                "Geen bruikbare kaartnaam gevonden. Controleer de foto of voer de kaart handmatig in."
+            )
         }
         try {
             val resultaten = when (spel) {
