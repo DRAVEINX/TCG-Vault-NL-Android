@@ -20,7 +20,9 @@ jobs:
           gradle-version: '8.11.1'
       - name: Android SDK 35 installeren
         run: |
-          sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+          SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager -print -quit)
+          if [ -z "$SDKMANAGER" ]; then echo "Android sdkmanager ontbreekt"; exit 1; fi
+          "$SDKMANAGER" 'platforms;android-35' 'build-tools;35.0.0'
       - name: Unit-tests
         run: gradle :app:testDebugUnitTest --no-daemon
       - name: Debug APK bouwen
