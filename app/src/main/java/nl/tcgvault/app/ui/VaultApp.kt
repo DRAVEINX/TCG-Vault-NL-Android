@@ -6,6 +6,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -32,6 +33,10 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Style
 import androidx.compose.material.icons.filled.Verified
+import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -39,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -52,6 +58,8 @@ import kotlinx.coroutines.launch
 import nl.tcgvault.app.BuildConfig
 import nl.tcgvault.app.data.*
 import nl.tcgvault.app.scan.KaartTekstParser
+import nl.tcgvault.app.scan.KaartZoeker
+import nl.tcgvault.app.scan.KaartKandidaat
 import nl.tcgvault.app.scan.TekstHerkenner
 import java.io.File
 import java.math.BigDecimal
@@ -75,6 +83,9 @@ fun VaultApp(vm: KaartViewModel = viewModel()) {
     var spel by rememberSaveable { mutableStateOf(Kaartspel.POKEMON.name) }
     var dialoog by remember { mutableStateOf(false) }
     var ocrTekst by remember { mutableStateOf<String?>(null) }
+    var matchOpties by remember { mutableStateOf<List<KaartKandidaat>>(emptyList()) }
+    var toonMatches by remember { mutableStateOf(false) }
+    var gekozenMatch by remember { mutableStateOf<KaartKandidaat?>(null) }
     var bezig by remember { mutableStateOf(false) }
     var scanFout by remember { mutableStateOf<String?>(null) }
     var fotoUri by remember { mutableStateOf<Uri?>(null) }
@@ -84,8 +95,17 @@ fun VaultApp(vm: KaartViewModel = viewModel()) {
         scanFout = null
         scope.launch {
             try {
-                ocrTekst = TekstHerkenner.lees(context, uri)
-                dialoog = true
+                val herkend = TekstHerkenner.lees(context, uri)
+                ocrTekst = herkend
+                val gevonden = KaartZoeker.zoek(Kaartspel.vanSleutel(spel), herkend)
+                matchOpties = gevonden.kandidaten
+                if (matchOpties.isNotEmpty()) {
+                    toonMatches = true
+                } else {
+                    scanFout = gevonden.bericht
+                    gekozenMatch = null
+                    dialoog = true
+                }
             } catch (e: Exception) {
                 scanFout = "De afbeelding kon niet worden gelezen. Probeer een scherpere foto of vul de kaart handmatig in."
             } finally { bezig = false }
@@ -158,7 +178,7 @@ fun VaultApp(vm: KaartViewModel = viewModel()) {
         },
         floatingActionButton = {
             if (pagina == Pagina.COLLECTIE) {
-                FloatingActionButton(onClick = { ocrTekst = null; dialoog = true }, containerColor = Accent) {
+                FloatingActionButton(onClick = { ocrTekst = null; gekozenMatch = null; dialoog = true }, containerColor = Accent) {
                     Icon(Icons.Default.Add, "Kaart toevoegen", tint = Achtergrond)
                 }
             }
@@ -170,7 +190,7 @@ fun VaultApp(vm: KaartViewModel = viewModel()) {
                 Pagina.SCAN -> ScannerPagina(
                     spel = Kaartspel.vanSleutel(spel), veranderSpel = { spel = it.name },
                     bezig = bezig, fout = scanFout, maakFoto = ::maakFoto,
-                    kiesFoto = { galerij.launch("image/*") }, handmatig = { ocrTekst = null; dialoog = true }
+                    kiesFoto = { galerij.launch("image/*") }, handmatig = { ocrTekst = null; gekozenMatch = null; dialoog = true }
                 )
                 Pagina.COLLECTIE -> CollectiePagina(kaarten, vm::wijzigAantal)
                 Pagina.PORTFOLIO -> PortfolioPagina(kaarten) {
@@ -185,14 +205,33 @@ fun VaultApp(vm: KaartViewModel = viewModel()) {
         }
     }
 
+    if (toonMatches) {
+        MatchDialoog(
+            opties = matchOpties,
+            sluiten = { toonMatches = false },
+            kies = { match ->
+                gekozenMatch = match
+                toonMatches = false
+                dialoog = true
+            },
+            handmatig = {
+                gekozenMatch = null
+                toonMatches = false
+                dialoog = true
+            }
+        )
+    }
+
     if (dialoog) {
         KaartDialoog(
             spel = Kaartspel.vanSleutel(spel), herkendeTekst = ocrTekst,
-            sluiten = { dialoog = false; ocrTekst = null },
+            suggestie = gekozenMatch,
+            sluiten = { dialoog = false; ocrTekst = null; gekozenMatch = null },
             opslaan = { kaart ->
                 vm.voegToe(kaart, ocrTekst)
                 dialoog = false
                 ocrTekst = null
+                gekozenMatch = null
                 pagina = Pagina.COLLECTIE
             }
         )
@@ -518,13 +557,14 @@ private fun Keuzelijst(label: String, waarde: String, opties: List<String>, wijz
 
 @Composable
 private fun KaartDialoog(
-    spel: Kaartspel, herkendeTekst: String?, sluiten: () -> Unit, opslaan: (Verzamelkaart) -> Unit
+    spel: Kaartspel, herkendeTekst: String?, suggestie: KaartKandidaat?,
+    sluiten: () -> Unit, opslaan: (Verzamelkaart) -> Unit
 ) {
-    var gekozenSpel by remember { mutableStateOf(spel) }
-    var naam by remember { mutableStateOf(herkendeTekst?.let(KaartTekstParser::naamVoorstel).orEmpty()) }
-    var setNaam by remember { mutableStateOf("") }
-    var nummer by remember { mutableStateOf(herkendeTekst?.let(KaartTekstParser::kaartnummer).orEmpty()) }
-    var taal by remember { mutableStateOf("Engels") }
+    var gekozenSpel by remember(suggestie) { mutableStateOf(suggestie?.spel ?: spel) }
+    var naam by remember(suggestie, herkendeTekst) { mutableStateOf(suggestie?.naam ?: herkendeTekst?.let(KaartTekstParser::naamVoorstel).orEmpty()) }
+    var setNaam by remember(suggestie) { mutableStateOf(suggestie?.setNaam.orEmpty()) }
+    var nummer by remember(suggestie, herkendeTekst) { mutableStateOf(suggestie?.nummer ?: herkendeTekst?.let(KaartTekstParser::kaartnummer).orEmpty()) }
+    var taal by remember(suggestie) { mutableStateOf(suggestie?.taal ?: "Engels") }
     var vrijeTaal by remember { mutableStateOf("") }
     var conditie by remember { mutableStateOf("Near Mint") }
     var uitvoering by remember { mutableStateOf("Normaal") }
@@ -536,7 +576,8 @@ private fun KaartDialoog(
         Surface(color = Paneel, shape = RoundedCornerShape(22.dp), modifier = Modifier.fillMaxWidth()) {
             Column {
                 Column(Modifier.fillMaxWidth().weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(19.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(if (herkendeTekst != null) "Scan controleren" else "Kaart toevoegen", color = Licht, fontSize = 21.sp, fontWeight = FontWeight.Black)
+                    Text(if (suggestie != null) "Kaartmatch controleren" else if (herkendeTekst != null) "Scan controleren" else "Kaart toevoegen", color = Licht, fontSize = 21.sp, fontWeight = FontWeight.Black)
+                    if (suggestie != null) Text("Voorstel via " + suggestie.bron + " • controleer set, taal en uitvoering.", color = Accent, fontSize = 12.sp)
                     Text("Controleer alle gegevens. Dezelfde variant wordt als dubbel opgeteld.", color = Muted, fontSize = 12.sp)
                     if (herkendeTekst != null) {
                         Surface(color = Achtergrond, shape = RoundedCornerShape(12.dp)) {
@@ -595,4 +636,88 @@ private fun KaartDialoog(
             }
         }
     }
+}
+
+@Composable
+private fun MatchDialoog(
+    opties: List<KaartKandidaat>,
+    sluiten: () -> Unit,
+    kies: (KaartKandidaat) -> Unit,
+    handmatig: () -> Unit
+) {
+    Dialog(onDismissRequest = sluiten) {
+        Surface(
+            color = Paneel,
+            shape = RoundedCornerShape(26.dp),
+            border = BorderStroke(1.dp, Lijn),
+            modifier = Modifier.fillMaxWidth().fillMaxHeight(.82f)
+        ) {
+            Column(Modifier.fillMaxSize().padding(18.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.AutoAwesome, null, tint = Accent, modifier = Modifier.size(25.dp))
+                    Spacer(Modifier.width(10.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("Kaart herkend?", color = Licht, fontWeight = FontWeight.Black, fontSize = 22.sp)
+                        Text("Kies de juiste kaart om door te gaan", color = Muted, fontSize = 12.sp)
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    "Dit zijn catalogusvoorstellen, geen bevestigde druk of taal. " +
+                        "Controleer de gegevens voordat je opslaat.",
+                    color = Muted, fontSize = 12.sp, lineHeight = 18.sp
+                )
+                Spacer(Modifier.height(14.dp))
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(9.dp)
+                ) {
+                    items(opties) { kandidaat ->
+                        Surface(
+                            color = PaneelLicht,
+                            shape = RoundedCornerShape(15.dp),
+                            border = BorderStroke(1.dp, Lijn),
+                            modifier = Modifier.fillMaxWidth().clickable { kies(kandidaat) }
+                        ) {
+                            Row(Modifier.padding(13.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    Modifier.size(width = 49.dp, height = 66.dp)
+                                        .background(
+                                            Brush.linearGradient(listOf(spelKleur(kandidaat.spel).copy(alpha = .32f), Achtergrond)),
+                                            RoundedCornerShape(8.dp)
+                                        ).border(1.dp, spelKleur(kandidaat.spel).copy(alpha = .45f), RoundedCornerShape(8.dp)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(Icons.Default.Style, null, tint = spelKleur(kandidaat.spel))
+                                }
+                                Spacer(Modifier.width(12.dp))
+                                Column(Modifier.weight(1f)) {
+                                    Text(kandidaat.naam, color = Licht, fontWeight = FontWeight.Bold, maxLines = 2)
+                                    Text(
+                                        listOf(kandidaat.setNaam, kandidaat.nummer).filter { it.isNotBlank() }.joinToString(" · "),
+                                        color = Muted, fontSize = 12.sp, maxLines = 2
+                                    )
+                                    Text("Bron: " + kandidaat.bron, color = Accent, fontSize = 10.sp)
+                                }
+                                Icon(Icons.Default.ArrowForward, null, tint = Accent)
+                            }
+                        }
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
+                OutlinedButton(
+                    onClick = handmatig, modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(13.dp)
+                ) { Text("Mijn kaart staat er niet tussen") }
+            }
+        }
+    }
+}
+
+private fun spelKleur(spel: Kaartspel): Color = when (spel) {
+    Kaartspel.POKEMON -> Color(0xFFFFCB67)
+    Kaartspel.MAGIC -> Color(0xFFAF94FF)
+    Kaartspel.ONE_PIECE -> Color(0xFFFF8191)
+    Kaartspel.YUGIOH -> Color(0xFF77A7FF)
+    Kaartspel.RIFTBOUND -> Color(0xFF5AE4D0)
 }
