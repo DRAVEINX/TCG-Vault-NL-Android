@@ -10,6 +10,7 @@ Een Nederlandstalige **native Android-app** voor Pokémon, Magic: The Gathering,
 - **Dieper zoeken naar Pokémon-drukken:** als OCR een kaartnummer in de vorm `025/198` leest, doorzoekt de app maximaal drie cataloguspagina's, in plaats van altijd na de eerste pagina te stoppen. Nog altijd kunnen oudere of speciale kaarten ontbreken.
 - **Meer Magic en Yu-Gi-Oh!-uitgaven:** Scryfall-query's nemen meer en recentere fysieke drukken mee; Yu-Gi-Oh! toont meerdere beschikbare sets in plaats van standaard de eerste. Een volledige Yu-Gi-Oh!-setcode heeft voorrang.
 - **One Piece:** zoekt ook op de herkende volledige kaartcode, zelfs wanneer OCR geen bruikbare kaartnaam kan vinden.
+- **Dubbelen direct herkennen in resultaten:** als de naam, set, kaartnummer en taal overeenkomen met een kaart in je lokale collectie, toont het matchvenster hoeveel exemplaren je al bezit. De uitvoering en conditie moet je nog handmatig controleren.
 - **Extra tests:** controleert onder andere Pokémon-nummers, Japanse namen, Yu-Gi-Oh!- en One Piece-codes en Unicode-varianten van kaarttekst.
 
 ### Test de verbeterde scanner
