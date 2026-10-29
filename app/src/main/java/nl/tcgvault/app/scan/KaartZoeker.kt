@@ -62,18 +62,8 @@ object KaartZoeker {
             .take(5).toList()
     }
 
-    /** Score op kaartnummer en naam, om verwisselingen van herdrukken te verminderen. */
-    fun score(kandidaat: KaartKandidaat, ocr: String): Int {
-        val tekst = ocr.lowercase(Locale.ROOT)
-        val naam = kandidaat.naam.lowercase(Locale.ROOT)
-        val gevondenNummer = nummer.find(ocr)?.value?.substringBefore("/")?.trimStart('0')
-        val kaartNummer = kandidaat.nummer.substringBefore("/").trimStart('0')
-        val codeMatch = kandidaat.nummer.length >= 5 && tekst.contains(kandidaat.nummer.lowercase(Locale.ROOT))
-        return (if (codeMatch) 120 else 0) +
-            (if (gevondenNummer != null && kaartNummer == gevondenNummer) 65 else 0) +
-            (if (naam.isNotBlank() && tekst.contains(naam)) 30 else 0) -
-            (if (kandidaat.naam.isBlank()) 100 else 0)
-    }
+    fun score(kandidaat: KaartKandidaat, ocr: String): Int =
+        KaartMatchLogica.beoordeel(kandidaat, ocr).punten
 
     suspend fun zoek(spel: Kaartspel, ocr: String): ZoekUitkomst = withContext(Dispatchers.IO) {
         val namen = naamSuggesties(ocr)
@@ -133,10 +123,10 @@ object KaartZoeker {
             val naam = kaart.optString("name")
             val zoekQuery = "!\"" + naam.replace("\"", "") + "\" game:paper"
             val drukken = haalObject(
-                "https://api.scryfall.com/cards/search?q=" + Uri.encode(zoekQuery) + "&unique=prints&order=released"
+                "https://api.scryfall.com/cards/search?q=" + Uri.encode(zoekQuery) + "&unique=prints&order=released&dir=desc"
             ).optJSONArray("data")
             val uitgaven = drukken?.let { lijst ->
-                (0 until minOf(lijst.length(), 24)).mapNotNull { lijst.optJSONObject(it) }
+                (0 until minOf(lijst.length(), 60)).mapNotNull { lijst.optJSONObject(it) }
             } ?: listOf(kaart)
             return uitgaven.map { item ->
                 val afbeeldingen = item.optJSONObject("image_uris")
@@ -193,8 +183,9 @@ object KaartZoeker {
     }
 
     private fun onePiece(namen: List<String>, ocr: String): List<KaartKandidaat> {
-        val code = onePieceCode.find(ocr.uppercase(Locale.ROOT))?.value
-        for (naam in namen.take(3)) {
+        val code = KaartMatchLogica.gevondenKaartcode(ocr, Kaartspel.ONE_PIECE)
+        val zoektermen = (listOfNotNull(code) + namen.take(3)).distinct()
+        for (naam in zoektermen) {
             val data = haalObject("https://optcg-api.ryanmichaelhirst.us/api/v1/cards?search=" +
                 Uri.encode(naam) + "&per_page=30").optJSONArray("data") ?: continue
             val kandidaten = mutableListOf<KaartKandidaat>()
@@ -254,7 +245,7 @@ object KaartZoeker {
         verbinding.connectTimeout = 7000
         verbinding.readTimeout = 7000
         verbinding.setRequestProperty("Accept", "application/json")
-        verbinding.setRequestProperty("User-Agent", "TCGVaultNL/0.3 (catalog search; github.com/DRAVEINX/TCG-Vault-NL-Android)")
+        verbinding.setRequestProperty("User-Agent", "TCGVaultNL/0.6 (catalog search; github.com/DRAVEINX/TCG-Vault-NL-Android)")
         try {
             if (verbinding.responseCode !in 200..299) return "{}"
             return verbinding.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
