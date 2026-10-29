@@ -555,6 +555,7 @@ private fun ScannerPagina(
 
 @Composable
 private fun CollectiePagina(kaarten: List<Verzamelkaart>, wijzigAantal: (Long, Int) -> Unit) {
+    var detailKaart by remember { mutableStateOf<Verzamelkaart?>(null) }
     var zoekterm by rememberSaveable { mutableStateOf("") }
     var filterSpel by rememberSaveable { mutableStateOf("Alle spellen") }
     var alleenDubbel by rememberSaveable { mutableStateOf(false) }
@@ -588,25 +589,31 @@ private fun CollectiePagina(kaarten: List<Verzamelkaart>, wijzigAantal: (Long, I
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(bottom = 90.dp)) {
                 items(gefilterd, key = { it.id }) { kaart ->
-                    KaartRij(kaart, wijzigAantal)
+                    KaartRij(kaart, wijzigAantal, bekijk = { detailKaart = it })
                 }
             }
+        }
+        detailKaart?.let { kaart ->
+            KaartDetailDialoog(kaart, sluiten = { detailKaart = null })
         }
     }
 }
 
 @Composable
-private fun KaartRij(kaart: Verzamelkaart, wijzigAantal: (Long, Int) -> Unit) {
+private fun KaartRij(kaart: Verzamelkaart, wijzigAantal: (Long, Int) -> Unit, bekijk: (Verzamelkaart) -> Unit) {
     val kleur = spelKleur(kaart.spel)
     Surface(
         color = Paneel, shape = RoundedCornerShape(19.dp),
         border = BorderStroke(1.dp, Lijn)
     ) {
         Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            KaartIllustratie(kaart.afbeeldingUrl, kaart.spel, Modifier.size(width = 63.dp, height = 88.dp))
+            KaartIllustratie(kaart.afbeeldingUrl, kaart.spel,
+                Modifier.size(width = 63.dp, height = 88.dp).clickable { bekijk(kaart) })
             Spacer(Modifier.width(13.dp))
             Column(Modifier.weight(1f)) {
-                Text(kaart.naam, color = Licht, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(kaart.naam, color = Licht, fontSize = 15.sp, fontWeight = FontWeight.Bold,
+                    maxLines = 2, overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.clickable { bekijk(kaart) })
                 Spacer(Modifier.height(2.dp))
                 Text(kaart.spel.titel.uppercase(), color = kleur, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = .65.sp)
                 Spacer(Modifier.height(4.dp))
@@ -997,5 +1004,65 @@ private fun KaartIllustratie(url: String, spel: Kaartspel, modifier: Modifier = 
         } else {
             Icon(Icons.Default.Style, null, tint = kleur, modifier = Modifier.size(28.dp))
         }
+    }
+}
+
+@Composable
+private fun KaartDetailDialoog(kaart: Verzamelkaart, sluiten: () -> Unit) {
+    Dialog(onDismissRequest = sluiten) {
+        Surface(
+            color = Paneel, shape = RoundedCornerShape(24.dp),
+            border = BorderStroke(1.dp, Lijn),
+            modifier = Modifier.fillMaxWidth().fillMaxHeight(.88f)
+        ) {
+            Column(Modifier.fillMaxSize()) {
+                Column(
+                    Modifier.weight(1f).verticalScroll(rememberScrollState())
+                        .padding(horizontal = 19.dp, vertical = 17.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text("KAARTDETAILS", color = Accent, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
+                    Spacer(Modifier.height(13.dp))
+                    KaartIllustratie(kaart.afbeeldingUrl, kaart.spel, Modifier.size(width = 174.dp, height = 239.dp))
+                    Spacer(Modifier.height(16.dp))
+                    Text(kaart.naam, color = Licht, fontSize = 22.sp, fontWeight = FontWeight.Black, textAlign = TextAlign.Center)
+                    Text(kaart.spel.titel, color = spelKleur(kaart.spel), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.height(14.dp))
+                    Surface(color = PaneelLicht, shape = RoundedCornerShape(15.dp)) {
+                        Column(Modifier.fillMaxWidth().padding(15.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            DetailRij("Set", kaart.setNaam.ifBlank { "Niet opgegeven" })
+                            DetailRij("Kaartnummer", kaart.kaartnummer.ifBlank { "Onbekend" })
+                            DetailRij("Taal", kaart.taal)
+                            DetailRij("Uitvoering", kaart.uitvoering)
+                            DetailRij("Conditie", kaart.conditie)
+                            DetailRij("Aantal", kaart.aantal.toString() + if (kaart.aantal > 1) " (dubbel)" else "")
+                            DetailRij("Eigen prijs per stuk", kaart.eigenPrijsCent?.let(::euro) ?: "Niet opgegeven")
+                            DetailRij("Herkomst", kaart.catalogusBron.ifBlank { "Handmatig toegevoegd" })
+                        }
+                    }
+                    if (kaart.notitie.isNotBlank()) {
+                        Spacer(Modifier.height(13.dp))
+                        Text(kaart.notitie, color = Muted, fontSize = 12.sp)
+                    }
+                    Spacer(Modifier.height(11.dp))
+                    Text("Afbeelding en gegevens zijn een catalogusvoorstel. Geen geverifieerde Cardmarket-prijs.",
+                        color = Muted, fontSize = 10.sp, textAlign = TextAlign.Center)
+                }
+                OutlinedButton(
+                    onClick = sluiten,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth().padding(14.dp)
+                ) { Text("Sluiten") }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DetailRij(titel: String, waarde: String) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
+        Text(titel, color = Muted, fontSize = 12.sp, modifier = Modifier.weight(.9f))
+        Text(waarde, color = Licht, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.weight(1.3f), textAlign = TextAlign.End)
     }
 }
