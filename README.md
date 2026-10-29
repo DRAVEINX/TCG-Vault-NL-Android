@@ -1,6 +1,15 @@
-# TCG Vault NL — Android-app (bèta 0.2)
+# TCG Vault NL — Android-app (bèta 0.3)
 
 Een Nederlandstalige **native Android-app** voor Pokémon, Magic: The Gathering, One Piece, Yu-Gi-Oh! en Riftbound. Gebouwd met Kotlin, Jetpack Compose, Google ML Kit en SQLite.
+
+## Nieuw in 0.3
+
+- **Echte kaartafbeeldingen:** de app kan beschikbare afbeeldingen uit TCGdex (Pokémon), Scryfall (Magic) en de One Piece-catalogus tonen in het matchvenster, bevestigingsformulier en de collectie. Als een foto ontbreekt, verschijnt een nette kaartplaceholder. Yu-Gi-Oh! en Riftbound gebruiken voorlopig placeholders vanwege afbeeldingsrichtlijnen en rechten.
+- **Foto-voorvertoning:** zie je gekozen foto in de scanstudio.
+- **Zelf in catalogus zoeken:** typ de kaartnaam als OCR faalt, zoek de mogelijke kaart en bevestig set, nummer en uitvoering.
+- **Betere drukvergelijking:** de scanner sorteert op overeenkomend kaartnummer en naam. Voor Magic laat hij meerdere fysieke drukken zien via Scryfall; het is geen garantie dat alle drukken gevonden worden.
+- **Database-upgrade zonder wissen:** de app bewaart bron, catalogus-ID en beschikbare afbeeldingslink bij nieuw toegevoegde kaarten. Bestaande kaarten blijven behouden.
+- Extra tests voor nummervergelijking en herkenning van Oost-Aziatische schriften.
 
 ## Nieuw in 0.2
 
@@ -15,7 +24,7 @@ Een Nederlandstalige **native Android-app** voor Pokémon, Magic: The Gathering,
 
 1. Open **Scannen**, kies het juiste kaartspel en maak een duidelijke foto (liefst recht van voren).
 2. De app herkent tekst op het toestel en vraagt daarna online mogelijke kaarten op.
-3. Kies de juiste match. Als geen match verschijnt, vul de kaart handmatig in.
+3. Kies de juiste match. Als geen match verschijnt, probeer **Zoek op naam** of vul de kaart handmatig in.
 4. Controleer vooral **set, kaartnummer, taal, uitvoering/foil en conditie**.
 5. Sla op. Dezelfde variant opnieuw opslaan verhoogt het aantal en telt als dubbel.
 
@@ -54,6 +63,7 @@ De `gradle-wrapper.jar` ontbreekt nog; gebruik lokaal Gradle 8.11.1 of genereer 
 - OCR vindt plaats **op het toestel** met ML Kit. De app uploadt de scanfoto niet naar onze eigen server.
 - **Zoekwoorden uit de herkende kaarttekst** worden via HTTPS naar de catalogusdienst van het gekozen spel gestuurd. Die externe dienst kan de zoekopdracht en verbindingsgegevens zien. Gebruik handmatige invoer als je dat niet wilt.
 - De collectie blijft lokaal in SQLite. Er is geen account, advertentietracking of synchronisatie.
+- Kaartafbeeldingen worden op aanvraag geladen vanaf de genoemde catalogus-/afbeeldingsservers; die diensten kunnen je IP-adres en afbeeldingsaanvragen zien. Afbeeldingen worden door Coil op het toestel gecachet. De app uploadt niet je volledige scannerfoto.
 - Je eigen prijzen zijn niet automatisch opgehaald en dus geen geverifieerde marktprijzen.
 - Bij verwijdering van de app kun je de collectie verliezen; export/import bestaat nog niet.
 
@@ -72,5 +82,5 @@ API-afhankelijkheden kunnen tijdelijk niet werken of wijzigen. Diensten hebben h
 - `app/src/main/java/nl/tcgvault/app/ui/VaultApp.kt` — Nederlandstalige schermen, matchkeuze en formulier.
 - `app/src/main/java/nl/tcgvault/app/ui/VaultThema.kt` — premium donker thema.
 - `app/src/main/java/nl/tcgvault/app/scan/TekstHerkenner.kt` — ML Kit OCR.
-- `app/src/main/java/nl/tcgvault/app/scan/KaartZoeker.kt` — externe catalogusmatching.
+- `app/src/main/java/nl/tcgvault/app/scan/KaartZoeker.kt` — externe catalogusmatching met nummervergelijking en kaartafbeeldingen.
 - `app/src/main/java/nl/tcgvault/app/data/` — lokale database, collectie en waardefuncties.
