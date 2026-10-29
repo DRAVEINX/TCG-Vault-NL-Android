@@ -37,6 +37,24 @@ data class Verzamelkaart(
     val catalogusId: String = "",
 )
 
+/** Combineert twee identieke varianten zonder aantallen of notities te verliezen. */
+fun combineerVarianten(bestaand: Verzamelkaart, bewerkt: Verzamelkaart): Verzamelkaart {
+    require(bestaand.variantSleutel() == bewerkt.variantSleutel()) { "Deze kaarten zijn niet dezelfde variant." }
+    val som = bestaand.aantal.toLong() + bewerkt.aantal.toLong()
+    require(som in 1..100_000) { "Te veel kaarten om samen te voegen." }
+    val notities = listOf(bestaand.notitie.trim(), bewerkt.notitie.trim())
+        .filter { it.isNotBlank() }.distinct().joinToString("\\n")
+    return bewerkt.copy(
+        id = bestaand.id,
+        aantal = som.toInt(),
+        notitie = notities,
+        laatstToegevoegd = maxOf(bestaand.laatstToegevoegd, bewerkt.laatstToegevoegd),
+        afbeeldingUrl = bewerkt.afbeeldingUrl.ifBlank { bestaand.afbeeldingUrl },
+        catalogusBron = bewerkt.catalogusBron.ifBlank { bestaand.catalogusBron },
+        catalogusId = bewerkt.catalogusId.ifBlank { bestaand.catalogusId }
+    )
+}
+
 /** Zichtbaar overzicht van eerder bevestigde scanmomenten. */
 data class ScanMoment(
     val kaartId: Long,
