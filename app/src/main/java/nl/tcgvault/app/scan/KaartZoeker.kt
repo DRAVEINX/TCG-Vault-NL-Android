@@ -165,7 +165,7 @@ object KaartZoeker {
     }
 
     private fun yugioh(namen: List<String>, ocr: String): List<KaartKandidaat> {
-        val setCode = ygoCode.find(ocr.uppercase(Locale.ROOT))?.value
+        val setCode = KaartMatchLogica.gevondenKaartcode(ocr, Kaartspel.YUGIOH)
         if (setCode != null) {
             val kaart = haalObject("https://db.ygoprodeck.com/api/v7/cardsetsinfo.php?setcode=" + Uri.encode(setCode))
             val naam = kaart.optString("name")
@@ -180,18 +180,28 @@ object KaartZoeker {
         for (naam in namen.take(3)) {
             val kaarten = haalObject("https://db.ygoprodeck.com/api/v7/cardinfo.php?fname=" + Uri.encode(naam))
                 .optJSONArray("data") ?: continue
-            if (kaarten.length() == 0) continue
             val kandidaten = mutableListOf<KaartKandidaat>()
-            for (i in 0 until minOf(8, kaarten.length())) {
+            for (i in 0 until minOf(10, kaarten.length())) {
                 val card = kaarten.optJSONObject(i) ?: continue
+                val naamKaart = card.optString("name")
+                if (naamKaart.isBlank()) continue
                 val sets = card.optJSONArray("card_sets")
-                val set = sets?.optJSONObject(0)
-                kandidaten.add(KaartKandidaat(
-                    Kaartspel.YUGIOH, card.optString("name"),
-                    set?.optString("set_name").orEmpty(),
-                    set?.optString("set_code").orEmpty(),
-                    bron = "YGOPRODeck", bronId = card.optString("id")
-                ))
+                if (sets == null || sets.length() == 0) {
+                    kandidaten.add(KaartKandidaat(
+                        Kaartspel.YUGIOH, naamKaart, bron = "YGOPRODeck", bronId = card.optString("id")
+                    ))
+                } else {
+                    // Toon meerdere drukken, niet automatisch de allereerste als juist.
+                    val limit = minOf(sets.length(), if (setCode == null) 6 else 40)
+                    for (j in 0 until limit) {
+                        val set = sets.optJSONObject(j) ?: continue
+                        kandidaten.add(KaartKandidaat(
+                            Kaartspel.YUGIOH, naamKaart, set.optString("set_name"),
+                            set.optString("set_code"),
+                            bron = "YGOPRODeck", bronId = card.optString("id")
+                        ))
+                    }
+                }
             }
             if (kandidaten.isNotEmpty()) return kandidaten
         }
