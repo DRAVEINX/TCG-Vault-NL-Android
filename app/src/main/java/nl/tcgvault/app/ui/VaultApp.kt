@@ -164,19 +164,20 @@ fun VaultApp(vm: KaartViewModel = viewModel()) {
         },
 
         bottomBar = {
-            NavigationBar(containerColor = Paneel) {
+            NavigationBar(containerColor = Color(0xFF101B29), tonalElevation = 0.dp) {
                 Pagina.entries.forEach { item ->
+                    val actief = pagina == item
                     NavigationBarItem(
-                        selected = pagina == item, onClick = { pagina = item },
+                        selected = actief, onClick = { pagina = item },
                         icon = {
                             Icon(when (item) {
                                 Pagina.START -> Icons.Default.Home
-                                Pagina.SCAN -> Icons.Default.CameraAlt
+                                Pagina.SCAN -> Icons.Default.QrCodeScanner
                                 Pagina.COLLECTIE -> Icons.Default.CollectionsBookmark
-                                Pagina.PORTFOLIO -> Icons.Default.Share
-                            }, contentDescription = item.label)
+                                Pagina.PORTFOLIO -> Icons.Default.Shield
+                            }, contentDescription = item.label, modifier = Modifier.size(23.dp))
                         },
-                        label = { Text(item.label, fontSize = 11.sp) },
+                        label = { Text(item.label, fontSize = 10.sp, fontWeight = if (actief) FontWeight.Bold else FontWeight.Medium) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = Achtergrond, selectedTextColor = Accent,
                             indicatorColor = Accent, unselectedIconColor = Muted, unselectedTextColor = Muted
@@ -185,6 +186,7 @@ fun VaultApp(vm: KaartViewModel = viewModel()) {
                 }
             }
         },
+
         floatingActionButton = {
             if (pagina == Pagina.COLLECTIE) {
                 FloatingActionButton(onClick = { ocrTekst = null; gekozenMatch = null; dialoog = true }, containerColor = Accent) {
@@ -533,31 +535,60 @@ private fun CollectiePagina(kaarten: List<Verzamelkaart>, wijzigAantal: (Long, I
 
 @Composable
 private fun KaartRij(kaart: Verzamelkaart, wijzigAantal: (Long, Int) -> Unit) {
-    Surface(color = Paneel, shape = RoundedCornerShape(16.dp)) {
+    val kleur = spelKleur(kaart.spel)
+    Surface(
+        color = Paneel, shape = RoundedCornerShape(19.dp),
+        border = BorderStroke(1.dp, Lijn)
+    ) {
         Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(width = 54.dp, height = 76.dp).clip(RoundedCornerShape(8.dp))
-                .background(Color(0xFF27455A)), contentAlignment = Alignment.Center) {
-                Icon(Icons.Default.Style, contentDescription = null, tint = Accent, modifier = Modifier.size(31.dp))
+            Box(
+                Modifier.size(width = 63.dp, height = 88.dp)
+                    .background(Brush.linearGradient(listOf(kleur.copy(alpha = .3f), Color(0xFF111A2A))), RoundedCornerShape(11.dp))
+                    .border(1.dp, kleur.copy(alpha = .45f), RoundedCornerShape(11.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Icons.Default.Style, null, tint = kleur, modifier = Modifier.size(32.dp))
+                    Spacer(Modifier.height(6.dp))
+                    Text(kaart.spel.name.take(3), color = kleur, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
+                }
             }
-            Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(13.dp))
             Column(Modifier.weight(1f)) {
-                Text(kaart.naam, color = Licht, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                Text(kaart.spel.titel, color = Accent, fontSize = 11.sp)
-                Text(listOf(kaart.setNaam, kaart.kaartnummer, kaart.taal).filter { it.isNotBlank() }.joinToString(" · "), color = Muted, fontSize = 11.sp, maxLines = 2)
-                Text("${kaart.uitvoering} · ${kaart.conditie}", color = Muted, fontSize = 11.sp)
-                Text(kaart.eigenPrijsCent?.let { "Eigen prijs: ${euro(it)} / stuk" } ?: "Geen prijs ingesteld", color = Goud, fontSize = 11.sp)
-                if (kaart.scanAantal > 0) Text("${kaart.scanAantal}× gescand", color = Accent, fontSize = 10.sp)
+                Text(kaart.naam, color = Licht, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Spacer(Modifier.height(2.dp))
+                Text(kaart.spel.titel.uppercase(), color = kleur, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = .65.sp)
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    listOf(kaart.setNaam, kaart.kaartnummer, kaart.taal).filter { it.isNotBlank() }.joinToString(" • "),
+                    color = Muted, fontSize = 11.sp, maxLines = 2
+                )
+                Text(kaart.uitvoering + " • " + kaart.conditie, color = Muted, fontSize = 10.sp)
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    kaart.eigenPrijsCent?.let { "Eigen waarde: " + euro(it) + " / stuk" } ?: "Waarde niet ingevuld",
+                    color = Goud, fontSize = 11.sp, fontWeight = FontWeight.Medium
+                )
+                if (kaart.scanAantal > 0) {
+                    Text(kaart.scanAantal.toString() + " keer gescand", color = Accent, fontSize = 10.sp)
+                }
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = { wijzigAantal(kaart.id, kaart.aantal - 1) }, modifier = Modifier.size(28.dp)) {
-                        Icon(Icons.Default.Remove, contentDescription = "Eén kaart minder", tint = Muted, modifier = Modifier.size(17.dp))
-                    }
-                    Text("×${kaart.aantal}", color = Licht, fontWeight = FontWeight.Bold)
-                    IconButton(onClick = { wijzigAantal(kaart.id, kaart.aantal + 1) }, modifier = Modifier.size(28.dp)) {
-                        Icon(Icons.Default.Add, contentDescription = "Eén kaart meer", tint = Accent, modifier = Modifier.size(18.dp))
+                    Surface(color = PaneelLicht, shape = RoundedCornerShape(10.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            IconButton(onClick = { wijzigAantal(kaart.id, kaart.aantal - 1) }, modifier = Modifier.size(31.dp)) {
+                                Icon(Icons.Default.Remove, "Eén kaart minder", tint = Muted, modifier = Modifier.size(17.dp))
+                            }
+                            Text(kaart.aantal.toString(), color = Licht, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            IconButton(onClick = { wijzigAantal(kaart.id, kaart.aantal + 1) }, modifier = Modifier.size(31.dp)) {
+                                Icon(Icons.Default.Add, "Eén kaart meer", tint = Accent, modifier = Modifier.size(17.dp))
+                            }
+                        }
                     }
                     if (kaart.aantal > 1) {
-                        Spacer(Modifier.width(4.dp))
-                        Text("DUBBEL", color = Goud, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        Spacer(Modifier.width(8.dp))
+                        Surface(color = Goud.copy(alpha = .13f), shape = RoundedCornerShape(50)) {
+                            Text("DUBBEL", Modifier.padding(horizontal = 8.dp, vertical = 4.dp), color = Goud, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }
@@ -569,44 +600,90 @@ private fun KaartRij(kaart: Verzamelkaart, wijzigAantal: (Long, Int) -> Unit) {
 private fun PortfolioPagina(kaarten: List<Verzamelkaart>, delen: () -> Unit) {
     val totaal = kaarten.sumOf { it.aantal }
     val dubbelen = kaarten.sumOf { (it.aantal - 1).coerceAtLeast(0) }
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    LazyColumn(
+        Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
         item {
-            Text("Mijn portfolio", color = Licht, fontSize = 28.sp, fontWeight = FontWeight.Black)
-            Text("Jouw persoonlijke collectie om te laten zien", color = Muted)
+            Text("JOUW SHOWCASE", color = Accent, fontSize = 10.sp, letterSpacing = 2.sp, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(5.dp))
+            Text("Mijn portfolio", color = Licht, fontSize = 29.sp, fontWeight = FontWeight.Black)
+            Text("Een overzicht om trots op te zijn.", color = Muted, fontSize = 13.sp)
         }
         item {
-            Surface(color = Paneel, shape = RoundedCornerShape(22.dp)) {
-                Column(Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Box(Modifier.size(68.dp).background(Accent.copy(alpha = .18f), CircleShape), contentAlignment = Alignment.Center) {
-                        Icon(Icons.Default.Verified, null, tint = Accent, modifier = Modifier.size(35.dp))
+            Surface(
+                shape = RoundedCornerShape(24.dp), color = Paneel,
+                border = BorderStroke(1.dp, Accent.copy(alpha = .27f))
+            ) {
+                Column(
+                    Modifier.fillMaxWidth().background(
+                        Brush.verticalGradient(listOf(Color(0xFF173440), Paneel))
+                    ).padding(22.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Box(
+                        Modifier.size(73.dp).background(Accent.copy(alpha = .13f), CircleShape)
+                            .border(1.dp, Accent.copy(alpha = .34f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Default.Shield, null, tint = Accent, modifier = Modifier.size(37.dp))
                     }
-                    Spacer(Modifier.height(13.dp))
-                    Text("MIJN TCG VAULT", color = Licht, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
-                    Text("$totaal kaarten • ${kaarten.size} varianten • $dubbelen dubbelen", color = Muted, fontSize = 12.sp, textAlign = TextAlign.Center)
-                    Spacer(Modifier.height(14.dp))
-                    Text(euro(eigenWaardeCent(kaarten)), color = Goud, fontSize = 30.sp, fontWeight = FontWeight.Black)
-                    Text("Opgegeven waarde (niet live)", color = Muted, fontSize = 11.sp)
+                    Spacer(Modifier.height(11.dp))
+                    Text("MIJN TCG VAULT", color = Licht, fontSize = 20.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
+                    Text("COLLECTOR PROFILE", color = Accent, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp)
+                    Spacer(Modifier.height(17.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(21.dp)) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(totaal.toString(), color = Licht, fontSize = 22.sp, fontWeight = FontWeight.Black)
+                            Text("Kaarten", color = Muted, fontSize = 11.sp)
+                        }
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(kaarten.size.toString(), color = Licht, fontSize = 22.sp, fontWeight = FontWeight.Black)
+                            Text("Varianten", color = Muted, fontSize = 11.sp)
+                        }
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(dubbelen.toString(), color = Goud, fontSize = 22.sp, fontWeight = FontWeight.Black)
+                            Text("Dubbelen", color = Muted, fontSize = 11.sp)
+                        }
+                    }
                     Spacer(Modifier.height(18.dp))
-                    Button(onClick = delen, modifier = Modifier.fillMaxWidth(), enabled = kaarten.isNotEmpty()) {
+                    Text(euro(eigenWaardeCent(kaarten)), color = Goud, fontSize = 29.sp, fontWeight = FontWeight.Black)
+                    Text("Eigen opgegeven waarde • geen live koers", color = Muted, fontSize = 11.sp)
+                    Spacer(Modifier.height(17.dp))
+                    Button(
+                        onClick = delen, modifier = Modifier.fillMaxWidth(), enabled = kaarten.isNotEmpty(),
+                        shape = RoundedCornerShape(13.dp)
+                    ) {
                         Icon(Icons.Default.Share, null)
                         Spacer(Modifier.width(8.dp))
-                        Text("Portfolio delen als tekst")
+                        Text("Deel mijn portfolio", fontWeight = FontWeight.Bold)
                     }
                 }
             }
         }
-        item { Text("Per kaartspel", color = Licht, fontSize = 19.sp, fontWeight = FontWeight.Bold) }
+        item {
+            Text("Jouw collectie per spel", color = Licht, fontSize = 19.sp, fontWeight = FontWeight.Bold)
+        }
         items(Kaartspel.entries.toList()) { spel ->
-            val spellen = kaarten.filter { it.spel == spel }
-            Surface(color = Paneel, shape = RoundedCornerShape(13.dp)) {
+            val aantal = kaarten.filter { it.spel == spel }.sumOf { it.aantal }
+            val kleur = spelKleur(spel)
+            Surface(color = Paneel, shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, Lijn)) {
                 Row(Modifier.fillMaxWidth().padding(15.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.size(35.dp).background(kleur.copy(alpha = .14f), RoundedCornerShape(11.dp)), contentAlignment = Alignment.Center) {
+                        Icon(Icons.Default.Style, null, tint = kleur, modifier = Modifier.size(19.dp))
+                    }
+                    Spacer(Modifier.width(11.dp))
                     Text(spel.titel, Modifier.weight(1f), color = Licht, fontWeight = FontWeight.SemiBold)
-                    Text("${spellen.sumOf { it.aantal }} kaarten", color = Accent)
+                    Text(aantal.toString(), color = kleur, fontSize = 17.sp, fontWeight = FontWeight.Black)
                 }
             }
         }
         item { InfoPrijs() }
-        item { Text("Een openbare profiellink en online accounts komen in een volgende versie. Nu staat de collectie alleen op dit toestel.", color = Muted, fontSize = 12.sp) }
+        item {
+            Text("Je portfolio wordt momenteel als tekst gedeeld. Openbare profielen komen in een latere versie.",
+                color = Muted, fontSize = 12.sp)
+        }
     }
 }
 
