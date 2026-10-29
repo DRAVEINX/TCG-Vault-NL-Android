@@ -137,23 +137,32 @@ fun VaultApp(vm: KaartViewModel = viewModel()) {
         snackbarHost = { SnackbarHost(snackbarHost) },
         topBar = {
             Row(
-                Modifier.fillMaxWidth().background(Achtergrond).padding(horizontal = 20.dp, vertical = 15.dp),
+                Modifier.fillMaxWidth().background(Achtergrond).padding(horizontal = 20.dp, vertical = 13.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
-                    Modifier.size(42.dp).clip(RoundedCornerShape(13.dp)).background(Accent.copy(alpha = .16f)),
+                    Modifier.size(45.dp)
+                        .background(Brush.linearGradient(listOf(Accent.copy(alpha = .25f), Color(0xFF16323B))), RoundedCornerShape(14.dp))
+                        .border(1.dp, Accent.copy(alpha = .35f), RoundedCornerShape(14.dp)),
                     contentAlignment = Alignment.Center
-                ) { Icon(Icons.Default.Style, contentDescription = null, tint = Accent, modifier = Modifier.size(26.dp)) }
+                ) {
+                    Icon(Icons.Default.Layers, null, tint = Accent, modifier = Modifier.size(24.dp))
+                }
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
-                    Text("TCG VAULT", color = Licht, fontSize = 20.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
-                    Text("JOUW VERZAMELING • NL", color = Accent, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+                    Text("TCG VAULT", color = Licht, fontSize = 19.sp, fontWeight = FontWeight.Black, letterSpacing = 1.4.sp)
+                    Text("COLLECTOR EDITION", color = Muted, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.6.sp)
                 }
-                Surface(color = Paneel, shape = RoundedCornerShape(50)) {
-                    Text("BÈTA 0.1", Modifier.padding(horizontal = 11.dp, vertical = 7.dp), color = Muted, fontSize = 10.sp)
+                Surface(color = PaneelLicht, shape = RoundedCornerShape(50), border = BorderStroke(1.dp, Lijn)) {
+                    Row(Modifier.padding(horizontal = 11.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Box(Modifier.size(6.dp).background(Accent, CircleShape))
+                        Spacer(Modifier.width(7.dp))
+                        Text("BÈTA 0.2", color = Licht, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         },
+
         bottomBar = {
             NavigationBar(containerColor = Paneel) {
                 Pagina.entries.forEach { item ->
@@ -242,63 +251,121 @@ fun VaultApp(vm: KaartViewModel = viewModel()) {
 private fun StartPagina(kaarten: List<Verzamelkaart>, naarScanner: () -> Unit, naarCollectie: () -> Unit) {
     val exemplaren = kaarten.sumOf { it.aantal }
     val dubbel = kaarten.sumOf { (it.aantal - 1).coerceAtLeast(0) }
-    LazyColumn(contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 14.dp, bottom = 20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    LazyColumn(
+        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 10.dp, bottom = 28.dp),
+        verticalArrangement = Arrangement.spacedBy(17.dp)
+    ) {
         item {
             Column {
-                Text("Welkom in je vault", color = Licht, fontSize = 29.sp, fontWeight = FontWeight.ExtraBold)
-                Spacer(Modifier.height(5.dp))
-                Text("Al je TCG-kaarten, talen en dubbelen op één plek.", color = Muted, fontSize = 14.sp)
+                Text("JOUW COLLECTOR DASHBOARD", color = Accent, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
+                Spacer(Modifier.height(6.dp))
+                Text("Welkom in je vault.", color = Licht, fontSize = 29.sp, fontWeight = FontWeight.Black, letterSpacing = (-.7).sp)
+                Text("Jouw wereld van trading cards, overzichtelijk bewaard.", color = Muted, fontSize = 13.sp)
             }
         }
         item {
-            Surface(color = Paneel, shape = RoundedCornerShape(22.dp), modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(20.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Euro, contentDescription = null, tint = Goud)
-                        Spacer(Modifier.width(8.dp))
-                        Text("JOUW OPGEGEVEN WAARDE", color = Muted, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            Box(
+                Modifier.fillMaxWidth().height(240.dp).clip(RoundedCornerShape(26.dp))
+                    .background(
+                        Brush.linearGradient(listOf(Color(0xFF153C46), Color(0xFF14253A), Color(0xFF242442)))
+                    )
+                    .border(1.dp, Accent.copy(alpha = .18f), RoundedCornerShape(26.dp))
+            ) {
+                Box(
+                    Modifier.align(Alignment.TopEnd).offset(x = 67.dp, y = (-64).dp).size(235.dp)
+                        .border(1.dp, Accent.copy(alpha = .13f), CircleShape)
+                )
+                Box(
+                    Modifier.align(Alignment.TopEnd).offset(x = 25.dp, y = (-22).dp).size(155.dp)
+                        .border(1.dp, Accent.copy(alpha = .2f), CircleShape)
+                )
+                Column(Modifier.align(Alignment.CenterStart).padding(22.dp)) {
+                    Surface(color = Accent.copy(alpha = .15f), shape = RoundedCornerShape(50)) {
+                        Row(Modifier.padding(horizontal = 10.dp, vertical = 5.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.AutoAwesome, null, tint = Accent, modifier = Modifier.size(13.dp))
+                            Spacer(Modifier.width(5.dp))
+                            Text("JOUW DIGITALE KLUIS", color = Accent, fontWeight = FontWeight.Bold, fontSize = 9.sp, letterSpacing = 1.sp)
+                        }
                     }
-                    Spacer(Modifier.height(12.dp))
-                    Text(euro(eigenWaardeCent(kaarten)), color = Licht, fontSize = 37.sp, fontWeight = FontWeight.Black)
-                    Spacer(Modifier.height(7.dp))
-                    Text("Gebaseerd op prijzen die je zelf invult. Geen live Cardmarket-koersen.", color = Muted, fontSize = 12.sp)
-                    if (zonderPrijs(kaarten) > 0) {
-                        Spacer(Modifier.height(8.dp))
-                        Text("${zonderPrijs(kaarten)} kaarten nog zonder prijs", color = Goud, fontSize = 12.sp)
+                    Spacer(Modifier.height(13.dp))
+                    Text("Scan. Verzamel.\nOntdek.", color = Licht, fontSize = 30.sp, lineHeight = 35.sp, fontWeight = FontWeight.Black)
+                    Spacer(Modifier.height(8.dp))
+                    Text("Herken kaarten en bouw je collectie.", color = Color(0xFFC8D7E4), fontSize = 12.sp)
+                    Spacer(Modifier.height(15.dp))
+                    Button(
+                        onClick = naarScanner,
+                        shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 11.dp)
+                    ) {
+                        Icon(Icons.Default.QrCodeScanner, null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Kaart scannen", fontWeight = FontWeight.Bold)
+                        Spacer(Modifier.width(8.dp))
+                        Icon(Icons.Default.ArrowForward, null, modifier = Modifier.size(16.dp))
                     }
                 }
             }
         }
         item {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Kengetal("Kaarten", exemplaren.toString(), Accent, Modifier.weight(1f))
-                Kengetal("Verschillend", kaarten.size.toString(), Licht, Modifier.weight(1f))
+            Surface(color = Paneel, shape = RoundedCornerShape(22.dp), border = BorderStroke(1.dp, Lijn)) {
+                Column(Modifier.fillMaxWidth().padding(19.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Euro, null, tint = Goud, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("EIGEN COLLECTIEWAARDE", color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                    }
+                    Spacer(Modifier.height(9.dp))
+                    Text(euro(eigenWaardeCent(kaarten)), color = Licht, fontWeight = FontWeight.Black, fontSize = 34.sp)
+                    Spacer(Modifier.height(4.dp))
+                    Text("Gebaseerd op jouw eigen prijzen • geen live Cardmarket-koers", color = Muted, fontSize = 11.sp)
+                    if (zonderPrijs(kaarten) > 0) {
+                        Spacer(Modifier.height(10.dp))
+                        Text("Nog " + zonderPrijs(kaarten) + " kaarten zonder prijs", color = Goud, fontSize = 11.sp)
+                    }
+                }
+            }
+        }
+        item {
+            Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+                Kengetal("Exemplaren", exemplaren.toString(), Accent, Modifier.weight(1f))
+                Kengetal("Uniek", kaarten.size.toString(), Licht, Modifier.weight(1f))
                 Kengetal("Dubbelen", dubbel.toString(), Goud, Modifier.weight(1f))
             }
         }
         item {
-            Button(onClick = naarScanner, modifier = Modifier.fillMaxWidth().height(56.dp), shape = RoundedCornerShape(16.dp)) {
-                Icon(Icons.Default.CameraAlt, null)
-                Spacer(Modifier.width(10.dp))
-                Text("SCAN EEN KAART", fontWeight = FontWeight.Black)
-            }
-        }
-        item {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("Jouw spellen", color = Licht, fontSize = 19.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("Mijn kaartspellen", color = Licht, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    Text("Verdeling van je verzameling", color = Muted, fontSize = 12.sp)
+                }
                 TextButton(onClick = naarCollectie) { Text("Bekijk alles") }
             }
         }
         items(Kaartspel.entries.toList()) { game ->
-            val totaal = kaarten.filter { it.spel == game }.sumOf { it.aantal }
-            Surface(color = Paneel, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth().clickable(onClick = naarCollectie)) {
-                Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.size(43.dp).background(Accent.copy(alpha = .13f), RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
-                        Icon(Icons.Default.Style, null, tint = Accent)
+            val aantal = kaarten.filter { it.spel == game }.sumOf { it.aantal }
+            val gameKleur = spelKleur(game)
+            Surface(
+                color = Paneel, shape = RoundedCornerShape(17.dp),
+                border = BorderStroke(1.dp, Lijn),
+                modifier = Modifier.fillMaxWidth().clickable(onClick = naarCollectie)
+            ) {
+                Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        Modifier.size(48.dp)
+                            .background(gameKleur.copy(alpha = .13f), RoundedCornerShape(13.dp))
+                            .border(1.dp, gameKleur.copy(alpha = .22f), RoundedCornerShape(13.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Default.Style, null, tint = gameKleur, modifier = Modifier.size(23.dp))
                     }
                     Spacer(Modifier.width(13.dp))
-                    Text(game.titel, modifier = Modifier.weight(1f), color = Licht, fontWeight = FontWeight.SemiBold)
-                    Text("$totaal kaarten", color = Muted, fontSize = 12.sp)
+                    Column(Modifier.weight(1f)) {
+                        Text(game.titel, color = Licht, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Text("In jouw collectie", color = Muted, fontSize = 11.sp)
+                    }
+                    Text(aantal.toString(), color = gameKleur, fontSize = 19.sp, fontWeight = FontWeight.Black)
+                    Spacer(Modifier.width(7.dp))
+                    Icon(Icons.Default.ArrowForward, null, tint = Muted, modifier = Modifier.size(17.dp))
                 }
             }
         }
@@ -308,11 +375,13 @@ private fun StartPagina(kaarten: List<Verzamelkaart>, naarScanner: () -> Unit, n
 
 @Composable
 private fun Kengetal(titel: String, waarde: String, kleur: Color, modifier: Modifier = Modifier) {
-    Surface(modifier = modifier, color = Paneel, shape = RoundedCornerShape(16.dp)) {
-        Column(Modifier.padding(14.dp)) {
+    Surface(modifier = modifier, color = Paneel, shape = RoundedCornerShape(17.dp), border = BorderStroke(1.dp, Lijn)) {
+        Column(Modifier.padding(vertical = 16.dp, horizontal = 12.dp)) {
+            Box(Modifier.size(6.dp).background(kleur, CircleShape))
+            Spacer(Modifier.height(8.dp))
             Text(waarde, color = kleur, fontWeight = FontWeight.Black, fontSize = 25.sp)
             Spacer(Modifier.height(3.dp))
-            Text(titel, color = Muted, fontSize = 11.sp)
+            Text(titel, color = Muted, fontSize = 10.sp)
         }
     }
 }
@@ -322,60 +391,101 @@ private fun ScannerPagina(
     spel: Kaartspel, veranderSpel: (Kaartspel) -> Unit, bezig: Boolean, fout: String?,
     maakFoto: () -> Unit, kiesFoto: () -> Unit, handmatig: () -> Unit
 ) {
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Spacer(Modifier.height(20.dp))
-        Text("Kaart scannen", color = Licht, fontSize = 28.sp, fontWeight = FontWeight.Black)
-        Spacer(Modifier.height(5.dp))
-        Text("Maak een foto of kies een afbeelding", color = Muted)
-        Spacer(Modifier.height(25.dp))
-        Surface(shape = RoundedCornerShape(26.dp), color = Paneel, modifier = Modifier.fillMaxWidth().height(220.dp)) {
-            Box(contentAlignment = Alignment.Center) {
+    Column(
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Spacer(Modifier.height(14.dp))
+        Text("SCAN STUDIO", color = Accent, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.1.sp)
+        Spacer(Modifier.height(7.dp))
+        Text("Herken je kaarten", color = Licht, fontSize = 28.sp, fontWeight = FontWeight.Black)
+        Spacer(Modifier.height(4.dp))
+        Text("Fotografeer je kaart en kies een catalogusmatch.", color = Muted, fontSize = 13.sp)
+        Spacer(Modifier.height(19.dp))
+        Box(
+            Modifier.fillMaxWidth().height(258.dp)
+                .clip(RoundedCornerShape(27.dp))
+                .background(Brush.linearGradient(listOf(Color(0xFF1D3348), Color(0xFF121D2F), Color(0xFF0F222C))))
+                .border(1.dp, Accent.copy(alpha = .24f), RoundedCornerShape(27.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Box(
+                Modifier.size(width = 133.dp, height = 183.dp)
+                    .background(Color.White.copy(alpha = .025f), RoundedCornerShape(13.dp))
+                    .border(1.dp, Accent.copy(alpha = .55f), RoundedCornerShape(13.dp)),
+                contentAlignment = Alignment.Center
+            ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.AddAPhoto, null, tint = Accent, modifier = Modifier.size(66.dp))
-                    Spacer(Modifier.height(14.dp))
-                    Text("Houd de kaart recht en scherp", color = Licht, fontWeight = FontWeight.SemiBold)
-                    Text("Voorkom reflecties op folie", color = Muted, fontSize = 12.sp)
+                    Icon(Icons.Default.QrCodeScanner, null, tint = Accent, modifier = Modifier.size(60.dp))
+                    Spacer(Modifier.height(11.dp))
+                    Text(if (bezig) "HERKENNEN" else "KAART IN BEELD", color = Muted, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                }
+            }
+            Surface(
+                color = Accent.copy(alpha = .13f),
+                shape = RoundedCornerShape(50),
+                modifier = Modifier.align(Alignment.TopStart).padding(16.dp)
+            ) {
+                Text("AUTO MATCH", color = Accent, fontSize = 10.sp, fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp))
+            }
+            Text("OCR + online catalogus", color = Muted, fontSize = 10.sp,
+                modifier = Modifier.align(Alignment.BottomCenter).padding(14.dp))
+        }
+        Spacer(Modifier.height(20.dp))
+        Text("SELECTEER HET KAARTSPEL", color = Muted, modifier = Modifier.fillMaxWidth(), fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+        Spacer(Modifier.height(7.dp))
+        Keuzelijst("Spel", spel.titel, Kaartspel.entries.map { it.titel }) { keuze ->
+            Kaartspel.entries.firstOrNull { it.titel == keuze }?.let(veranderSpel)
+        }
+        Spacer(Modifier.height(18.dp))
+        if (bezig) {
+            CircularProgressIndicator(color = Accent)
+            Spacer(Modifier.height(11.dp))
+            Text("Tekst lezen en kaartcatalogus doorzoeken…", color = Muted, fontSize = 13.sp)
+        } else {
+            Button(
+                onClick = maakFoto, shape = RoundedCornerShape(15.dp),
+                modifier = Modifier.fillMaxWidth().height(57.dp)
+            ) {
+                Icon(Icons.Default.CameraAlt, null)
+                Spacer(Modifier.width(9.dp))
+                Text("Fotografeer kaart", fontWeight = FontWeight.Bold)
+                Spacer(Modifier.width(9.dp))
+                Icon(Icons.Default.ArrowForward, null)
+            }
+            Spacer(Modifier.height(11.dp))
+            OutlinedButton(
+                onClick = kiesFoto, shape = RoundedCornerShape(15.dp),
+                modifier = Modifier.fillMaxWidth().height(53.dp)
+            ) {
+                Icon(Icons.Default.Image, null)
+                Spacer(Modifier.width(8.dp))
+                Text("Kies foto uit galerij")
+            }
+            Spacer(Modifier.height(5.dp))
+            TextButton(onClick = handmatig) { Text("Of voeg handmatig een kaart toe") }
+        }
+        if (fout != null) {
+            Spacer(Modifier.height(5.dp))
+            Text(fout, color = Goud, fontSize = 12.sp)
+        }
+        Spacer(Modifier.height(12.dp))
+        Surface(color = Paneel, shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, Lijn)) {
+            Row(Modifier.fillMaxWidth().padding(15.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Shield, null, tint = Accent, modifier = Modifier.size(22.dp))
+                Spacer(Modifier.width(12.dp))
+                Column {
+                    Text("Controle vóór opslaan", color = Licht, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    Text(
+                        "Ondersteunt OCR in Latijns, Chinees, Japans en Koreaans schrift. " +
+                            "Catalogusdekking varieert per spel en taal. Controleer de exacte druk en uitvoering.",
+                        color = Muted, fontSize = 11.sp, lineHeight = 17.sp
+                    )
                 }
             }
         }
-        Spacer(Modifier.height(21.dp))
-        Text("Kies eerst het kaartspel", color = Muted, modifier = Modifier.fillMaxWidth(), fontSize = 13.sp)
-        Spacer(Modifier.height(8.dp))
-        Keuzelijst("Kaartspel", spel.titel, Kaartspel.entries.map { it.titel }) { gekozen ->
-            Kaartspel.entries.firstOrNull { it.titel == gekozen }?.let(veranderSpel)
-        }
-        Spacer(Modifier.height(19.dp))
-        if (bezig) {
-            CircularProgressIndicator(color = Accent)
-            Spacer(Modifier.height(10.dp))
-            Text("Tekst herkennen…", color = Muted)
-        } else {
-            Button(onClick = maakFoto, modifier = Modifier.fillMaxWidth().height(54.dp), shape = RoundedCornerShape(15.dp)) {
-                Icon(Icons.Default.CameraAlt, null)
-                Spacer(Modifier.width(8.dp))
-                Text("Maak foto", fontWeight = FontWeight.Bold)
-            }
-            Spacer(Modifier.height(10.dp))
-            OutlinedButton(onClick = kiesFoto, modifier = Modifier.fillMaxWidth().height(54.dp), shape = RoundedCornerShape(15.dp)) {
-                Icon(Icons.Default.Image, null)
-                Spacer(Modifier.width(8.dp))
-                Text("Kies uit galerij")
-            }
-            TextButton(onClick = handmatig) { Text("Of voeg de kaart handmatig toe") }
-        }
-        if (fout != null) {
-            Spacer(Modifier.height(7.dp))
-            Text(fout, color = Goud, fontSize = 13.sp)
-        }
-        Spacer(Modifier.height(18.dp))
-        Surface(color = Paneel, shape = RoundedCornerShape(16.dp)) {
-            Row(Modifier.padding(16.dp)) {
-                Icon(Icons.Default.Info, contentDescription = null, tint = Goud)
-                Spacer(Modifier.width(12.dp))
-                Text("De scanner herkent tekst in Latijns, Chinees, Japans en Koreaans schrift. Controleer de naam, set, taal en kaartnummer voor het opslaan. Andere talen kun je zelf invoeren.", color = Muted, fontSize = 12.sp)
-            }
-        }
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(22.dp))
     }
 }
 
