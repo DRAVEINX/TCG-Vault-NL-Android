@@ -60,7 +60,8 @@ data class ScanMoment(
     val kaartId: Long,
     val kaartNaam: String,
     val spel: Kaartspel,
-    val gescandOp: Long
+    val gescandOp: Long,
+    val herkendeTekst: String = ""
 )
 
 fun Verzamelkaart.variantSleutel() = listOf(
