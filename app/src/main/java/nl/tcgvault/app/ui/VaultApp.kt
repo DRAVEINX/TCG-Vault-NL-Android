@@ -93,8 +93,11 @@ fun VaultApp(vm: KaartViewModel = viewModel()) {
     var bezig by remember { mutableStateOf(false) }
     var scanFout by remember { mutableStateOf<String?>(null) }
     var fotoUri by remember { mutableStateOf<Uri?>(null) }
+    var laatsteFoto by remember { mutableStateOf<Uri?>(null) }
+    var zoekNaam by rememberSaveable { mutableStateOf("") }
 
     fun verwerkAfbeelding(uri: Uri) {
+        laatsteFoto = uri
         bezig = true
         scanFout = null
         scope.launch {
@@ -112,6 +115,24 @@ fun VaultApp(vm: KaartViewModel = viewModel()) {
                 }
             } catch (e: Exception) {
                 scanFout = "De afbeelding kon niet worden gelezen. Probeer een scherpere foto of vul de kaart handmatig in."
+            } finally { bezig = false }
+        }
+    }
+
+    fun zoekOpNaam() {
+        if (zoekNaam.isBlank() || bezig) return
+        bezig = true
+        scanFout = null
+        scope.launch {
+            try {
+                val resultaat = KaartZoeker.zoek(Kaartspel.vanSleutel(spel), zoekNaam.trim())
+                matchOpties = resultaat.kandidaten
+                if (matchOpties.isNotEmpty()) {
+                    ocrTekst = null
+                    toonMatches = true
+                } else {
+                    scanFout = resultaat.bericht ?: "Geen kaarten gevonden. Probeer de volledige naam."
+                }
             } finally { bezig = false }
         }
     }
@@ -205,6 +226,8 @@ fun VaultApp(vm: KaartViewModel = viewModel()) {
                 Pagina.SCAN -> ScannerPagina(
                     spel = Kaartspel.vanSleutel(spel), veranderSpel = { spel = it.name },
                     bezig = bezig, fout = scanFout, maakFoto = ::maakFoto,
+                    fotoVoorbeeld = laatsteFoto, zoekNaam = zoekNaam, veranderZoeknaam = { zoekNaam = it },
+                    zoekInCatalogus = ::zoekOpNaam,
                     kiesFoto = { galerij.launch("image/*") }, handmatig = { ocrTekst = null; gekozenMatch = null; dialoog = true }
                 )
                 Pagina.COLLECTIE -> CollectiePagina(kaarten, vm::wijzigAantal)
@@ -395,6 +418,7 @@ private fun Kengetal(titel: String, waarde: String, kleur: Color, modifier: Modi
 @Composable
 private fun ScannerPagina(
     spel: Kaartspel, veranderSpel: (Kaartspel) -> Unit, bezig: Boolean, fout: String?,
+    fotoVoorbeeld: Uri?, zoekNaam: String, veranderZoeknaam: (String) -> Unit, zoekInCatalogus: () -> Unit,
     maakFoto: () -> Unit, kiesFoto: () -> Unit, handmatig: () -> Unit
 ) {
     Column(
@@ -415,6 +439,19 @@ private fun ScannerPagina(
                 .border(1.dp, Accent.copy(alpha = .24f), RoundedCornerShape(27.dp)),
             contentAlignment = Alignment.Center
         ) {
+            if (fotoVoorbeeld != null) {
+                SubcomposeAsyncImage(
+                    model = fotoVoorbeeld,
+                    contentDescription = "Jouw laatst gescande kaart",
+                    modifier = Modifier.fillMaxSize().padding(12.dp).clip(RoundedCornerShape(17.dp)),
+                    contentScale = ContentScale.Fit
+                ) {
+                    when (painter.state) {
+                        is AsyncImagePainter.State.Success -> SubcomposeAsyncImageContent()
+                        else -> Icon(Icons.Default.Image, null, tint = Accent)
+                    }
+                }
+            } else {
             Box(
                 Modifier.size(width = 133.dp, height = 183.dp)
                     .background(Color.White.copy(alpha = .025f), RoundedCornerShape(13.dp))
@@ -427,6 +464,7 @@ private fun ScannerPagina(
                     Text(if (bezig) "HERKENNEN" else "KAART IN BEELD", color = Muted, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                 }
             }
+            }
             Surface(
                 color = Accent.copy(alpha = .13f),
                 shape = RoundedCornerShape(50),
@@ -435,7 +473,7 @@ private fun ScannerPagina(
                 Text("SLIMME MATCH", color = Accent, fontSize = 10.sp, fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp))
             }
-            Text("OCR + online catalogus", color = Muted, fontSize = 10.sp,
+            Text(if (fotoVoorbeeld == null) "OCR + online catalogus" else "Laatst gekozen kaart", color = Muted, fontSize = 10.sp,
                 modifier = Modifier.align(Alignment.BottomCenter).padding(14.dp))
         }
         Spacer(Modifier.height(20.dp))
@@ -472,8 +510,28 @@ private fun ScannerPagina(
             Spacer(Modifier.height(5.dp))
             TextButton(onClick = handmatig) { Text("Of voeg handmatig een kaart toe") }
         }
+        Spacer(Modifier.height(16.dp))
+        Surface(color = Paneel, shape = RoundedCornerShape(17.dp), border = BorderStroke(1.dp, Lijn)) {
+            Column(Modifier.fillMaxWidth().padding(15.dp)) {
+                Text("Zoek op naam", color = Licht, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                Text("Geen goede foto? Zoek direct in de kaartcatalogus.", color = Muted, fontSize = 11.sp)
+                Spacer(Modifier.height(9.dp))
+                OutlinedTextField(
+                    value = zoekNaam, onValueChange = veranderZoeknaam,
+                    modifier = Modifier.fillMaxWidth(), singleLine = true,
+                    label = { Text("Kaartnaam") },
+                    leadingIcon = { Icon(Icons.Default.Search, null) },
+                    shape = RoundedCornerShape(12.dp)
+                )
+                Spacer(Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = zoekInCatalogus, modifier = Modifier.fillMaxWidth(),
+                    enabled = zoekNaam.isNotBlank() && !bezig
+                ) { Text("Zoek in catalogus") }
+            }
+        }
         if (fout != null) {
-            Spacer(Modifier.height(5.dp))
+            Spacer(Modifier.height(8.dp))
             Text(fout, color = Goud, fontSize = 12.sp)
         }
         Spacer(Modifier.height(12.dp))
