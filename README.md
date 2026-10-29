@@ -1,96 +1,76 @@
-# TCG Vault NL — native Android-app 🇳🇱
+# TCG Vault NL — Android-app (bèta 0.2)
 
-Een eerste **Android Studio/Kotlin/Jetpack Compose**-versie van een Nederlandstalige app om ruilkaarten te scannen en in je eigen verzameling te bewaren. De app is een **bèta (0.1.0)**, geen afgerond commercieel product.
+Een Nederlandstalige **native Android-app** voor Pokémon, Magic: The Gathering, One Piece, Yu-Gi-Oh! en Riftbound. Gebouwd met Kotlin, Jetpack Compose, Google ML Kit en SQLite.
 
-## Ondersteunde kaartspellen
+## Nieuw in 0.2
 
-- Pokémon TCG
-- Magic: The Gathering
-- One Piece Card Game
-- Yu-Gi-Oh!
-- Riftbound
+- **Professionele donkere interface:** collector-dashboard, vernieuwde scanstudio, spelkleur per TCG, collectiekaarten, vernieuwd portfolio en onderste navigatie.
+- **Automatisch kaartvoorstellen zoeken:** maak een foto of kies een afbeelding. ML Kit herkent lokaal tekst en de app doorzoekt online kaartcatalogi. Er verschijnt een lijst mogelijke matches; tik de juiste kaart aan en bevestig naam, set, nummer, taal, conditie en uitvoering voordat je opslaat.
+- **Vijf catalogusroutes:** TCGdex (Pokémon), Scryfall (Magic), YGOPRODeck (Yu-Gi-Oh!), OPTCG API (One Piece) en OpenRift (Riftbound).
+- **Meerdere schriften:** OCR in Latijns, Chinees, Japans en Koreaans schrift. Pokémon-zoekroute kiest bij Aziatische OCR automatisch een overeenkomstige catalogustaal, afhankelijk van beschikbare gegevens.
+- **Handmatige terugval** bij onduidelijke foto, ontbrekende cataloguskaart of netwerkstoring.
+- Bestaande lokale collectiegegevens blijven behouden; de SQLite-tabel is niet gewijzigd.
 
-## Wat werkt in deze eerste versie?
+### Zo scan je een kaart
 
-- 📷 Foto nemen met je Android-camera of foto kiezen uit je galerij.
-- 🔤 Tekstherkenning met Google ML Kit in **Latijns, Chinees, Japans en Koreaans schrift**. De herkende tekst wordt als voorstel in het kaartformulier gezet. Dit is **geen gegarandeerde kaartidentificatie**; controle van set, nummer, druk, taal en conditie is noodzakelijk.
-- 🌍 Taalkeuze met veelgebruikte kaarttalen en een vrij invoerveld voor alle andere talen. OCR herkent niet automatisch ieder wereldwijd schrift.
-- 📚 Verzameling bewaren in een lokale SQLite-database. Geen account nodig, geen uploads van collectiegegevens.
-- 🔁 Dezelfde kaartvariant opnieuw toevoegen verhoogt het aantal. Verschil in kaartspel, naam, set, nummer, taal, uitvoering of conditie telt als aparte variant.
-- 🗃️ Elk bevestigd scanevent wordt opgeslagen met datum en uitgelezen OCR-tekst; de collectie toont het aantal scans van die kaartvariant. De scanfoto zelf wordt niet permanent opgeslagen.
-- 🔎 Zoeken, op kaartspel filteren, dubbelen tonen, hoeveelheden verhogen en verlagen.
-- 🧾 Je eigen prijs **per kaart** invoeren en het totaal van die **eigen inschattingen** zien, met zichtbare aanduiding van kaarten zonder prijs.
-- 📤 Portfolio als tekst delen via Android, bijvoorbeeld in WhatsApp of e-mail (geen openbaar profiel of URL).
-- 🇳🇱 De volledige app-interface is Nederlandstalig.
+1. Open **Scannen**, kies het juiste kaartspel en maak een duidelijke foto (liefst recht van voren).
+2. De app herkent tekst op het toestel en vraagt daarna online mogelijke kaarten op.
+3. Kies de juiste match. Als geen match verschijnt, vul de kaart handmatig in.
+4. Controleer vooral **set, kaartnummer, taal, uitvoering/foil en conditie**.
+5. Sla op. Dezelfde variant opnieuw opslaan verhoogt het aantal en telt als dubbel.
 
-## Niet inbegrepen / eerstvolgende ontwikkeling
+**Belangrijk:** dit is OCR-gestuurde catalogusmatching, geen gegarandeerde visuele identificatie op basis van artwork. Niet elke kaart, taal, herdruk of alternatieve uitvoering kan automatisch worden gematcht. Vooral Aziatische kaarten van niet-Pokémon-spellen en oudere/promokaarten kunnen handmatige invoer vereisen.
 
-1. **Live Cardmarket-prijzen:** deze bèta heeft geen Cardmarket-API-toegang. Het configuratiepunt `MarktprijsBron` geeft bewust geen prijs terug. Cardmarket accepteert momenteel geen nieuwe API-aanvragen. Er worden geen prijzen gescrapet of verzonnen. Voor betrouwbare realtime prijzen is een toegestane databron en correcte matching per editie, taal, conditie en variant nodig.
-2. **Automatische exacte kaartidentificatie:** OCR geeft tekstvoorstellen, geen productdatabase-match. Voor elk spel is een juiste catalogus- of licentiedatabron nodig.
-3. **Online accounts en publieke portfolio-URL's:** de gegevens blijven vooralsnog alleen op het Android-toestel. Voor publieke portfolio's is een backend nodig, inclusief accountbeveiliging, toegangsrechten en privacyregels.
-4. Cloudback-up, data-export/-import, offline kaartafbeeldingen, volledige scanhistoriepagina, geverifieerde marktprijsverloopgrafieken en automatische kaartafbeeldingsmatching.
+## Wat al werkt
 
-## Android Studio starten
+- Lokale collectie met filteren, zoeken, talen, varianten en dubbelen.
+- Scanhistorie per opgeslagen kaartvariant (aantal scans), aantallen verhogen/verlagen.
+- Eigen optionele prijzen per kaart en totaal van **zelf ingevoerde** waarden.
+- Portfolio als tekst delen via andere apps. Nog geen publiek online portfolio of accounts.
+- Volledig Nederlandstalige interface en handmatige kaartinvoer.
 
-Vereisten: Android Studio met **JDK 17**, Android SDK Platform 35 en internet voor de eerste dependency-download. De app ondersteunt Android 8.0 (API 26) en hoger.
+## Wat nog niet werkt
 
-1. Pak de ZIP uit of clone de GitHub-repository.
-2. Open de map `TCG-Vault-NL-Android` in **Android Studio → Open**.
-3. Laat Gradle synchroniseren. Het project gebruikt **Android Gradle Plugin 8.9.2**, **Kotlin 2.0.21**, **Gradle 8.11.1**, Jetpack Compose en ML Kit.
-4. Kies een emulator of aangesloten Android-toestel.
-5. Klik op **Run ▶** om te testen.
+- **Live Cardmarket-waardes:** er is geen officiële Cardmarket-koppeling. De app toont bewust geen verzonnen prijzen. Een eigen prijs wordt nooit als Cardmarket-prijs gelabeld.
+- Gegarandeerde herkenning van elke taal/druk en precieze illustratievergelijking.
+- Online accounts, openbare collectiepagina's, cloudback-ups en fotoarchief.
+- Realtime videoherkenning zonder foto. Dit is een **foto-scanner**.
 
-**Gradle-wrapper:** vanwege de manier waarop deze eerste broncodebundel is gemaakt, is er wel `gradle/wrapper/gradle-wrapper.properties` maar **geen binaire `gradle-wrapper.jar`** toegevoegd. Als Android Studio hierom vraagt, installeer lokaal Gradle 8.11.1 en voer in de projectmap `gradle wrapper --gradle-version 8.11.1` uit. Hierna kun je `./gradlew :app:assembleDebug` gebruiken. Op GitHub Actions is dit al ondervangen met de `setup-gradle`-actie; de workflow gebruikt de geïnstalleerde Gradle direct.
+## Installeren / bouwen
 
-### Een APK via GitHub Actions
+Deze repository bouwt automatisch een debug-APK via GitHub Actions:
 
-Zodra de bronbestanden op de `main`-branch van je repository staan, bouwt `.github/workflows/android.yml` automatisch een **debug-APK**. Ga op GitHub naar **Actions → Android bouwen → laatste run → Artifacts → tcg-vault-nl-debug-apk**. Een debug-APK is bedoeld voor testen, niet voor publicatie in de Play Store. De workflow is nog niet op GitHub uitgevoerd.
+1. Ga naar [GitHub Actions — Android bouwen](https://github.com/DRAVEINX/TCG-Vault-NL-Android/actions).
+2. Open de nieuwste **geslaagde** build.
+3. Scroll naar **Artifacts**, kies `tcg-vault-nl-debug-apk` en pak de ZIP uit.
+4. Installeer `app-debug.apk` op je Android-telefoon (sta installatie uit deze bron toe, indien nodig).
 
-## Op GitHub plaatsen (nieuwe repository)
+Android Studio: open de repository, gebruik JDK 17 en Android SDK 35. De GitHub-workflow gebruikt Gradle 8.11.1 en bouwt met `gradle :app:testDebugUnitTest` en `gradle :app:assembleDebug`.
 
-1. Ga naar <https://github.com/new> en maak een **lege** repository aan, bijvoorbeeld `TCG-Vault-NL-Android`. Selecteer bij het aanmaken **geen** README, `.gitignore` of licentie.
-2. Open een terminal in de uitgepakte projectmap.
-3. Voer uit (vervang `JOUW_GEBRUIKERSNAAM` en de repositorynaam waar nodig):
+De `gradle-wrapper.jar` ontbreekt nog; gebruik lokaal Gradle 8.11.1 of genereer de wrapper. De CI-workflow werkt zonder wrapper. De APK is voor **testen**, niet voor Play Store-publicatie.
 
-```bash
-git init
-git add .
-git commit -m "Eerste Android-versie van TCG Vault NL"
-git branch -M main
-git remote add origin https://github.com/JOUW_GEBRUIKERSNAAM/TCG-Vault-NL-Android.git
-git push -u origin main
-```
+## Privacy en externe diensten
 
-Daarna staan de broncode en GitHub Actions-workflow in GitHub. Deel gerust de repository-URL als de lege repository is aangemaakt; de gekoppelde GitHub-app kan code toevoegen aan bestaande repositories.
+- OCR vindt plaats **op het toestel** met ML Kit. De app uploadt de scanfoto niet naar onze eigen server.
+- **Zoekwoorden uit de herkende kaarttekst** worden via HTTPS naar de catalogusdienst van het gekozen spel gestuurd. Die externe dienst kan de zoekopdracht en verbindingsgegevens zien. Gebruik handmatige invoer als je dat niet wilt.
+- De collectie blijft lokaal in SQLite. Er is geen account, advertentietracking of synchronisatie.
+- Je eigen prijzen zijn niet automatisch opgehaald en dus geen geverifieerde marktprijzen.
+- Bij verwijdering van de app kun je de collectie verliezen; export/import bestaat nog niet.
 
-## Structuur
+## Catalogusbronnen
 
-```text
-app/src/main/java/nl/tcgvault/app/
-├── MainActivity.kt
-├── data/
-│   ├── Models.kt           # kaartspellen, talen, prijzen, varianten
-│   ├── KaartDatabase.kt    # SQLite, scanhistorie en dubbelen
-│   └── KaartViewModel.kt   # lokale data en acties
-├── scan/
-│   └── TekstHerkenner.kt   # ML Kit OCR + kaartnummer-voorstel
-└── ui/
-    ├── VaultApp.kt        # complete Nederlandstalige interface
-    └── VaultThema.kt      # donker kleurenthema
-```
+- [TCGdex](https://tcgdex.dev/rest/cards) — Pokémon, meertalige dekking verschilt per taal.
+- [Scryfall](https://scryfall.com/docs/api) — Magic.
+- [YGOPRODeck](https://ygoprodeck.com/api-guide/) — Yu-Gi-Oh!. Hergebruik geen artwork door direct te hotlinken; deze app toont in de collectie gestileerde placeholders.
+- [OPTCG API](https://optcg-api.ryanmichaelhirst.us/docs/cards/list) — One Piece.
+- [OpenRift](https://openrift.app/developers) — Riftbound; jonge API, kan nog wijzigen.
 
-## Privacy en prijzen
+API-afhankelijkheden kunnen tijdelijk niet werken of wijzigen. Diensten hebben hun eigen voorwaarden en rate limits. Een geautomatiseerde match blijft een **voorstel**, geen officiële prijs-, kaart- of taalgarantie.
 
-- Er is **geen** account, analytics, tracking of eigen server in deze versie.
-- Foto's worden alleen gekozen/gemaakt voor verwerking op het toestel; tijdelijke camerabestanden kunnen in de appcache blijven tot Android die opschoont.
-- De collectie en scan-tekst worden lokaal bewaard. De app heeft bewust `allowBackup="false"`; zonder export kun je deze gegevens bij het verwijderen van de app kwijtraken.
-- **Waarde ≠ Cardmarket-koers**: alleen bedragen die je zelf invoert, worden opgeteld. Ongemeten kaarten ontbreken in dat totaal.
-- Geen Cardmarket-inloggegevens in Android-app of publiek GitHub-repository stoppen. Een toekomstige toegestane API-koppeling moet op een beveiligde server verlopen.
+## Code
 
-## Bronnen
-
-- [Google ML Kit Text Recognition voor Android](https://developers.google.com/ml-kit/vision/text-recognition/v2/android)
-- [Cardmarket API – huidige toegangsvoorwaarden](https://help.cardmarket.com/en/cardmarket-api)
-- [Android Developers](https://developer.android.com/)
-
-**Opmerking:** dit project is met broncode- en structuurcontroles voorbereid. Het is niet in deze omgeving gecompileerd of op een toestel getest; laat de eerste CI-run en Android Studio-compile de daadwerkelijke build verifiëren.
+- `app/src/main/java/nl/tcgvault/app/ui/VaultApp.kt` — Nederlandstalige schermen, matchkeuze en formulier.
+- `app/src/main/java/nl/tcgvault/app/ui/VaultThema.kt` — premium donker thema.
+- `app/src/main/java/nl/tcgvault/app/scan/TekstHerkenner.kt` — ML Kit OCR.
+- `app/src/main/java/nl/tcgvault/app/scan/KaartZoeker.kt` — externe catalogusmatching.
+- `app/src/main/java/nl/tcgvault/app/data/` — lokale database, collectie en waardefuncties.
